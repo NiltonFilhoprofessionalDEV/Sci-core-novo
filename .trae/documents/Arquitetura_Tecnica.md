@@ -35,57 +35,67 @@ graph TD
 ## 2. Descrição das Tecnologias
 
 **Stack Principal:**
-- Frontend: Next.js@14 + React@18 + TypeScript@5
-- Estilização: Tailwind CSS@3 + Headless UI
-- Autenticação: Supabase Auth
-- Banco de Dados: Supabase (PostgreSQL)
-- Validação: React Hook Form + Zod
-- Ícones: Lucide React
+
+* Frontend: Next.js\@14 + React\@18 + TypeScript\@5
+
+* Estilização: Tailwind CSS\@3 + Headless UI
+
+* Autenticação: Supabase Auth
+
+* Banco de Dados: Supabase (PostgreSQL)
+
+* Validação: React Hook Form + Zod
+
+* Ícones: Lucide React
 
 ## 3. Definições de Rotas
 
-| Rota | Propósito |
-|------|-----------|
-| / | Página inicial - redireciona para /login se não autenticado |
-| /login | Página de login principal com formulário de autenticação |
-| /forgot-password | Página de recuperação de senha |
-| /reset-password | Página para definir nova senha (via link do email) |
-| /dashboard | Dashboard principal personalizado por perfil do usuário |
-| /dashboard/gestor | Dashboard específico para Gestor POP |
-| /dashboard/gerente | Dashboard específico para Gerente de Seção |
-| /dashboard/ba-ce | Dashboard específico para BA-CE |
-| /indicadores | Módulo de listagem e visualização de indicadores |
-| /indicadores/preencher | Formulário de preenchimento de indicadores (BA-CE) |
-| /indicadores/[id] | Detalhes e histórico de um indicador específico |
-| /secoes | Módulo de gerenciamento de seções/bases |
-| /secoes/[id] | Detalhes de uma seção específica |
-| /relatorios | Módulo de relatórios e dashboards analíticos |
-| /configuracoes | Configurações do usuário e sistema |
-| /auth/callback | Callback do Supabase para processar autenticação |
+| Rota                   | Propósito                                                   |
+| ---------------------- | ----------------------------------------------------------- |
+| /                      | Página inicial - redireciona para /login se não autenticado |
+| /login                 | Página de login principal com formulário de autenticação    |
+| /forgot-password       | Página de recuperação de senha                              |
+| /reset-password        | Página para definir nova senha (via link do email)          |
+| /dashboard             | Dashboard principal personalizado por perfil do usuário     |
+| /dashboard/gestor      | Dashboard específico para Gestor POP                        |
+| /dashboard/gerente     | Dashboard específico para Gerente de Seção                  |
+| /dashboard/ba-ce       | Dashboard específico para BA-CE                             |
+| /indicadores           | Módulo de listagem e visualização de indicadores            |
+| /indicadores/preencher | Formulário de preenchimento de indicadores (BA-CE)          |
+| /indicadores/\[id]     | Detalhes e histórico de um indicador específico             |
+| /secoes                | Módulo de gerenciamento de seções/bases                     |
+| /secoes/\[id]          | Detalhes de uma seção específica                            |
+| /relatorios            | Módulo de relatórios e dashboards analíticos                |
+| /configuracoes         | Configurações do usuário e sistema                          |
+| /auth/callback         | Callback do Supabase para processar autenticação            |
 
 ## 4. Definições de API
 
 ### 4.1 APIs Principais
 
 **Autenticação de usuário**
+
 ```
 POST /auth/v1/token (Supabase)
 ```
 
 Requisição:
-| Nome do Parâmetro | Tipo | Obrigatório | Descrição |
-|-------------------|------|-------------|-----------|
-| email | string | true | Email do usuário |
-| password | string | true | Senha do usuário |
+
+| Nome do Parâmetro | Tipo   | Obrigatório | Descrição        |
+| ----------------- | ------ | ----------- | ---------------- |
+| email             | string | true        | Email do usuário |
+| password          | string | true        | Senha do usuário |
 
 Resposta:
-| Nome do Parâmetro | Tipo | Descrição |
-|-------------------|------|-----------|
-| access_token | string | Token JWT para autenticação |
-| refresh_token | string | Token para renovação |
-| user | object | Dados do usuário autenticado |
+
+| Nome do Parâmetro | Tipo   | Descrição                    |
+| ----------------- | ------ | ---------------------------- |
+| access\_token     | string | Token JWT para autenticação  |
+| refresh\_token    | string | Token para renovação         |
+| user              | object | Dados do usuário autenticado |
 
 Exemplo:
+
 ```json
 {
   "email": "usuario@exemplo.com",
@@ -94,23 +104,27 @@ Exemplo:
 ```
 
 **Recuperação de senha**
+
 ```
 POST /auth/v1/recover (Supabase)
 ```
 
 Requisição:
-| Nome do Parâmetro | Tipo | Obrigatório | Descrição |
-|-------------------|------|-------------|-----------|
-| email | string | true | Email para recuperação |
+
+| Nome do Parâmetro | Tipo   | Obrigatório | Descrição              |
+| ----------------- | ------ | ----------- | ---------------------- |
+| email             | string | true        | Email para recuperação |
 
 Resposta:
-| Nome do Parâmetro | Tipo | Descrição |
-|-------------------|------|-----------|
-| message | string | Confirmação do envio do email |
+
+| Nome do Parâmetro | Tipo   | Descrição                     |
+| ----------------- | ------ | ----------------------------- |
+| message           | string | Confirmação do envio do email |
 
 ### 4.2 Hooks Customizados
 
 **useAuth Hook**
+
 ```typescript
 interface AuthState {
   user: User | null;
@@ -122,6 +136,7 @@ interface AuthState {
 ```
 
 **useLocalStorage Hook**
+
 ```typescript
 interface LocalStorageHook<T> {
   value: T;
@@ -200,6 +215,7 @@ erDiagram
 ### 6.2 Linguagem de Definição de Dados
 
 **Sistema de Usuários e Perfis**
+
 ```sql
 -- Tabela de perfis de usuário estendida
 CREATE TABLE public.profiles (
@@ -406,3 +422,4 @@ GRANT SELECT ON public.indicadores TO anon;
 GRANT ALL PRIVILEGES ON public.indicadores TO authenticated;
 GRANT ALL PRIVILEGES ON public.preenchimentos TO authenticated;
 ```
+

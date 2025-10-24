@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 import { usePermissions } from '@/hooks/usePermissions'
+import { Modal } from '@/components/ui/Modal'
+import { OcorrenciaAeronauticaForm } from '@/components/forms/OcorrenciaAeronauticaForm'
 import { AuthenticatedRoute } from '@/components/auth/ProtectedRoute'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { 
@@ -39,6 +42,8 @@ interface Tema {
 export default function PreencherIndicadoresPage() {
   const { canFillIndicators } = usePermissions()
   const [selectedTema, setSelectedTema] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalTema, setModalTema] = useState<Tema | null>(null)
 
   const temas: Tema[] = [
     {
@@ -173,6 +178,22 @@ export default function PreencherIndicadoresPage() {
     setSelectedTema(selectedTema === temaId ? null : temaId)
   }
 
+  const handlePreencherClick = (tema: Tema) => {
+    setModalTema(tema)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setModalTema(null)
+  }
+
+  const handleFormSuccess = () => {
+    setIsModalOpen(false)
+    setModalTema(null)
+    // Aqui você pode adicionar uma notificação de sucesso se desejar
+  }
+
   if (!canFillIndicators) {
     return (
       <AuthenticatedRoute>
@@ -287,8 +308,7 @@ export default function PreencherIndicadoresPage() {
                             className="text-xs px-3 py-1 bg-[#fa4b00] hover:bg-[#e63d00] text-white transition-colors"
                             onClick={(e) => {
                               e.stopPropagation()
-                              // Aqui será implementada a navegação para o formulário específico
-                              console.log(`Abrindo formulário para: ${tema.nome}`)
+                              handlePreencherClick(tema)
                             }}
                           >
                             Preencher
@@ -324,6 +344,25 @@ export default function PreencherIndicadoresPage() {
             </div>
           </div>
         </div>
+
+        {/* Modal */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          title={modalTema ? modalTema.nome : ''}
+        >
+          {modalTema && modalTema.id === 'ocorrencias-aeronauticas' && (
+            <OcorrenciaAeronauticaForm
+              onSuccess={handleFormSuccess}
+              onCancel={handleCloseModal}
+            />
+          )}
+          {modalTema && modalTema.id !== 'ocorrencias-aeronauticas' && (
+            <div className="p-6 text-center text-gray-500">
+              <p>Formulário para {modalTema.nome} em desenvolvimento...</p>
+            </div>
+          )}
+        </Modal>
       </DashboardLayout>
     </AuthenticatedRoute>
   )

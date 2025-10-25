@@ -7,6 +7,7 @@
 
 import React, { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { usePermissions } from '@/hooks/usePermissions'
 import { 
@@ -33,8 +34,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { signOut } = useAuthContext()
   const { getUserDisplayInfo, isGestorPOP, isGerenteSecao, isBACE } = usePermissions()
   const router = useRouter()
+  const pathname = usePathname()
 
   const userInfo = getUserDisplayInfo()
+
+  // Função para verificar se uma rota está ativa
+  const isActive = (href: string) => {
+    if (href === '/dashboard') {
+      return pathname === '/dashboard'
+    }
+    // Para rotas como /indicadores, considera tanto /indicadores quanto /indicadores/preencher como ativas
+    return pathname.startsWith(href)
+  }
 
   const handleLogout = async () => {
     await signOut()
@@ -48,7 +59,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         icon: Home,
         label: 'Dashboard',
         href: '/dashboard',
-        active: true
+        active: isActive('/dashboard')
       }
     ]
 
@@ -59,31 +70,31 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           icon: BarChart3,
           label: 'Todas as Seções',
           href: '/secoes',
-          active: false
+          active: isActive('/secoes')
         },
         {
           icon: Users,
           label: 'Usuários',
           href: '/usuarios',
-          active: false
+          active: isActive('/usuarios')
         },
         {
           icon: Target,
           label: 'Indicadores',
           href: '/indicadores',
-          active: false
+          active: isActive('/indicadores')
         },
         {
           icon: TrendingUp,
           label: 'Relatórios Gerais',
           href: '/relatorios',
-          active: false
+          active: isActive('/relatorios')
         },
         {
           icon: Settings,
           label: 'Configurações',
           href: '/configuracoes',
-          active: false
+          active: isActive('/configuracoes')
         }
       ]
     }
@@ -95,25 +106,25 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           icon: BarChart3,
           label: 'Minha Seção',
           href: '/secao',
-          active: false
+          active: isActive('/secao')
         },
         {
           icon: Users,
           label: 'Equipes',
           href: '/equipes',
-          active: false
+          active: isActive('/equipes')
         },
         {
           icon: FileText,
           label: 'Relatórios',
           href: '/relatorios',
-          active: false
+          active: isActive('/relatorios')
         },
         {
           icon: Calendar,
           label: 'Cronograma',
           href: '/cronograma',
-          active: false
+          active: isActive('/cronograma')
         }
       ]
     }
@@ -125,19 +136,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           icon: Target,
           label: 'Preencher Indicadores',
           href: '/indicadores/preencher',
-          active: false
+          active: isActive('/indicadores')
         },
         {
           icon: BarChart3,
           label: 'Meus Dados',
           href: '/meus-dados',
-          active: false
+          active: isActive('/meus-dados')
         },
         {
           icon: FileText,
           label: 'Histórico',
           href: '/historico',
-          active: false
+          active: isActive('/historico')
         }
       ]
     }

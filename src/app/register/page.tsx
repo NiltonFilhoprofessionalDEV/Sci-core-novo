@@ -278,7 +278,7 @@ export default function RegisterPage() {
                 <option value="">Selecione uma equipe</option>
                 {equipes.map((equipe) => (
                   <option key={equipe.id} value={equipe.id}>
-                    {equipe.nome} ({equipe.codigo})
+                    {equipe.nome}
                   </option>
                 ))}
               </select>

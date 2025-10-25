@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { usePermissions } from '@/hooks/usePermissions'
 import { AuthenticatedRoute } from '@/components/auth/ProtectedRoute'
-import DashboardLayout from '@/components/layout/DashboardLayout'
-import { Calendar, Clock, Zap, BarChart3 } from 'lucide-react'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { Calendar, Clock, Zap, BarChart3, Edit3 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function IndicadoresPage() {
@@ -55,15 +55,27 @@ export default function IndicadoresPage() {
                 <p className="text-gray-600">Gerencie e preencha indicadores por frequência</p>
               </div>
               
-              {canManageIndicators() && (
-                <Link
-                  href="/indicadores/gerenciar"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  Gerenciar Indicadores
-                </Link>
-              )}
+              <div className="flex items-center gap-3">
+                {canFillIndicators && (
+                  <Link
+                    href="/indicadores/preencher"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Preencher Indicadores
+                  </Link>
+                )}
+                
+                {canManageIndicators && (
+                  <Link
+                    href="/indicadores/gerenciar"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    Gerenciar Indicadores
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
 
@@ -131,7 +143,7 @@ export default function IndicadoresPage() {
           </div>
 
           {/* Estatísticas Rápidas */}
-          {canFillIndicators() && (
+          {canFillIndicators && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <div className="flex items-center justify-between">

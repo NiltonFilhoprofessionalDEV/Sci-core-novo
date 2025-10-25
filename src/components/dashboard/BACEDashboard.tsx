@@ -19,10 +19,15 @@ import {
   TrendingUp,
   Plus,
   Edit3,
-  BarChart3
+  BarChart3,
+  Activity,
+  Timer
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AtividadesAcessoriasModal } from '@/components/modals/AtividadesAcessoriasModal'
+import { TAFModal } from '@/components/modals/TAFModal'
+
 
 interface IndicadorPendente {
   id: string
@@ -56,6 +61,9 @@ export function BACEDashboard() {
   const [indicadoresPendentes, setIndicadoresPendentes] = useState<IndicadorPendente[]>([])
   const [indicadoresRecentes, setIndicadoresRecentes] = useState<IndicadorRecente[]>([])
   const [loading, setLoading] = useState(true)
+  const [isAtividadesModalOpen, setIsAtividadesModalOpen] = useState(false)
+  const [isTAFModalOpen, setIsTAFModalOpen] = useState(false)
+
 
   const userInfo = getUserDisplayInfo()
   const visibleTeams = getVisibleTeams()
@@ -417,15 +425,32 @@ export function BACEDashboard() {
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Indicador
               </Button>
-              <Button className="w-full bg-[#7a5b3e] hover:bg-[#6b4d35] text-white justify-start">
+
+              <Button 
+                onClick={() => setIsAtividadesModalOpen(true)}
+                className="w-full bg-[#fa4b00] hover:bg-[#e63d00] text-white justify-start"
+              >
+                <Activity className="w-4 h-4 mr-2" />
+                Atividades Acessórias
+              </Button>
+
+              <Button 
+                onClick={() => setIsTAFModalOpen(true)}
+                className="w-full bg-[#fa4b00] hover:bg-[#e63d00] text-white justify-start"
+              >
+                <Timer className="w-4 h-4 mr-2" />
+                TAF
+              </Button>
+
+              <Button className="w-full bg-gray-600 hover:bg-gray-700 text-white justify-start">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Meus Dados
               </Button>
-              <Button className="w-full bg-gray-600 hover:bg-gray-700 text-white justify-start">
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white justify-start">
                 <FileText className="w-4 h-4 mr-2" />
                 Histórico
               </Button>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white justify-start">
+              <Button className="w-full bg-green-600 hover:bg-green-700 text-white justify-start">
                 <Calendar className="w-4 h-4 mr-2" />
                 Cronograma
               </Button>
@@ -463,6 +488,20 @@ export function BACEDashboard() {
           </Card>
         </div>
       </div>
+
+      <AtividadesAcessoriasModal 
+        isOpen={isAtividadesModalOpen}
+        onClose={() => setIsAtividadesModalOpen(false)}
+      />
+
+      <TAFModal 
+        isOpen={isTAFModalOpen}
+        onClose={() => setIsTAFModalOpen(false)}
+        onSuccess={() => {
+          setIsTAFModalOpen(false)
+          // Aqui poderia recarregar dados se necessário
+        }}
+      />
     </div>
   )
 }

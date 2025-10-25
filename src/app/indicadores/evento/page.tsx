@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { usePermissions } from '@/hooks/usePermissions'
 import { AuthenticatedRoute } from '@/components/auth/ProtectedRoute'
-import DashboardLayout from '@/components/layout/DashboardLayout'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import IndicadorForm from '@/components/indicadores/IndicadorForm'
 import { Zap, Plus, Search, Filter, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { toast } from 'sonner'
@@ -276,7 +276,7 @@ export default function IndicadoresEventoPage() {
                         </div>
                       </div>
 
-                      {canFillIndicators() && (
+                      {canFillIndicators && (
                         <div className="ml-4">
                           <button
                             onClick={() => handlePreencherIndicador(indicador)}

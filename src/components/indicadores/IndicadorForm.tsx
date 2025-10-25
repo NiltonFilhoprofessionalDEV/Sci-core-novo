@@ -259,7 +259,7 @@ export function IndicadorForm({ indicador, onSave, onCancel, valorInicial }: Ind
   return (
     <Card className="bg-white/20 backdrop-blur-lg border-white/30">
       <CardHeader>
-        <CardTitle className="text-[#1f1f1f] flex items-center justify-between">
+        <CardTitle className="text-black flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold">{indicador.nome}</h3>
             <div className="flex items-center space-x-4 text-sm text-[#7a5b3e]/70 mt-1">
@@ -294,7 +294,7 @@ export function IndicadorForm({ indicador, onSave, onCancel, valorInicial }: Ind
 
         {/* Campo Valor */}
         <div>
-          <label className="block text-sm font-medium text-[#1f1f1f] mb-2">
+          <label className="block text-sm font-medium text-black mb-2">
             Valor {indicador.obrigatorio && <span className="text-red-500">*</span>}
           </label>
           {renderCampoValor()}
@@ -309,7 +309,7 @@ export function IndicadorForm({ indicador, onSave, onCancel, valorInicial }: Ind
         {/* Data de Ocorrência (para indicadores por evento) */}
         {indicador.frequencia === 'evento' && (
           <div>
-            <label className="block text-sm font-medium text-[#1f1f1f] mb-2">
+            <label className="block text-sm font-medium text-black mb-2">
               Data de Ocorrência <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -334,7 +334,7 @@ export function IndicadorForm({ indicador, onSave, onCancel, valorInicial }: Ind
 
         {/* Observações */}
         <div>
-          <label className="block text-sm font-medium text-[#1f1f1f] mb-2">
+          <label className="block text-sm font-medium text-black mb-2">
             Observações (opcional)
           </label>
           <div className="relative">

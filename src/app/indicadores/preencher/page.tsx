@@ -5,6 +5,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { usePermissions } from '@/hooks/usePermissions'
 import { Modal } from '@/components/ui/Modal'
 import { OcorrenciaAeronauticaForm } from '@/components/forms/OcorrenciaAeronauticaForm'
+import OcorrenciaNaoAeronauticaForm from '@/components/forms/OcorrenciaNaoAeronauticaForm'
+import { AtividadesAcessoriasModal } from '@/components/modals/AtividadesAcessoriasModal'
+import { TAFModal } from '@/components/modals/TAFModal'
 import { AuthenticatedRoute } from '@/components/auth/ProtectedRoute'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { 
@@ -44,6 +47,7 @@ export default function PreencherIndicadoresPage() {
   const [selectedTema, setSelectedTema] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalTema, setModalTema] = useState<Tema | null>(null)
+  const [isTAFModalOpen, setIsTAFModalOpen] = useState(false)
 
   const temas: Tema[] = [
     {
@@ -76,8 +80,8 @@ export default function PreencherIndicadoresPage() {
     {
       id: 'taf',
       nome: 'TAF',
-      descricao: 'Terminal Aerodrome Forecast - Previsão meteorológica',
-      icon: Cloud,
+      descricao: 'Teste de Aptidão Física - Avaliação física dos bombeiros',
+      icon: Timer,
       color: 'text-sky-600',
       bgColor: 'bg-sky-50',
       borderColor: 'border-sky-200'
@@ -179,8 +183,12 @@ export default function PreencherIndicadoresPage() {
   }
 
   const handlePreencherClick = (tema: Tema) => {
-    setModalTema(tema)
-    setIsModalOpen(true)
+    if (tema.id === 'taf') {
+      setIsTAFModalOpen(true)
+    } else {
+      setModalTema(tema)
+      setIsModalOpen(true)
+    }
   }
 
   const handleCloseModal = () => {
@@ -346,23 +354,55 @@ export default function PreencherIndicadoresPage() {
         </div>
 
         {/* Modal */}
-        <Modal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          title={modalTema ? modalTema.nome : ''}
-        >
-          {modalTema && modalTema.id === 'ocorrencias-aeronauticas' && (
+        {modalTema && modalTema.id === 'ocorrencias-aeronauticas' && (
+          <Modal
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            title={modalTema.nome}
+          >
             <OcorrenciaAeronauticaForm
               onSuccess={handleFormSuccess}
               onCancel={handleCloseModal}
             />
-          )}
-          {modalTema && modalTema.id !== 'ocorrencias-aeronauticas' && (
+          </Modal>
+        )}
+
+        {modalTema && modalTema.id === 'ocorrencia-nao-aeronautica' && (
+          <OcorrenciaNaoAeronauticaForm
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+
+        {modalTema && modalTema.id === 'atividades-acessorias' && (
+          <AtividadesAcessoriasModal
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            onSuccess={handleFormSuccess}
+          />
+        )}
+
+        <TAFModal
+          isOpen={isTAFModalOpen}
+          onClose={() => setIsTAFModalOpen(false)}
+          onSuccess={() => {
+            setIsTAFModalOpen(false)
+            // Aqui você pode adicionar uma notificação de sucesso se desejar
+          }}
+        />
+
+        {modalTema && modalTema.id !== 'ocorrencias-aeronauticas' && modalTema.id !== 'ocorrencia-nao-aeronautica' && modalTema.id !== 'atividades-acessorias' && modalTema.id !== 'taf' && (
+          <Modal
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            title={modalTema.nome}
+          >
             <div className="p-6 text-center text-gray-500">
               <p>Formulário para {modalTema.nome} em desenvolvimento...</p>
             </div>
-          )}
-        </Modal>
+          </Modal>
+        )}
       </DashboardLayout>
     </AuthenticatedRoute>
   )

@@ -14,7 +14,6 @@ export interface Equipe {
   id: string
   secao_id: string
   nome: string
-  codigo: string
   ativa: boolean
 }
 
@@ -33,6 +32,8 @@ export interface OcorrenciaAeronautica {
   tempo_chegada_ultimo_cci: string
   hora_termino: string
   tempo_total_ocorrencia?: string
+  equipe: string // Nome da equipe selecionada
+  cidade_aeroporto: string // Nome da cidade do aeroporto
   created_at?: string
   updated_at?: string
 }
@@ -48,9 +49,13 @@ export interface FormData {
   tempo_chegada_primeiro_cci: string
   tempo_chegada_ultimo_cci: string
   hora_termino: string
+  equipe: string // Nome da equipe selecionada
+  cidade_aeroporto: string // Nome da cidade do aeroporto
 }
 
 export const useOcorrenciasAeronauticas = () => {
+  console.log('🎯 Hook useOcorrenciasAeronauticas inicializado!')
+  
   const [secoes, setSecoes] = useState<Secao[]>([])
   const [equipes, setEquipes] = useState<Equipe[]>([])
   const [loading, setLoading] = useState(false)
@@ -77,21 +82,40 @@ export const useOcorrenciasAeronauticas = () => {
 
   // Buscar equipes por seção
   const fetchEquipesBySecao = useCallback(async (secaoId: string) => {
+    console.log('🔍 fetchEquipesBySecao chamado com secaoId:', secaoId)
     try {
       setLoading(true)
+      setError(null)
+      
+      console.log('📡 Iniciando query para buscar equipes...')
+      
+      // Buscar equipes
       const { data, error } = await supabase
         .from('equipes')
         .select('*')
         .eq('secao_id', secaoId)
         .eq('ativa', true)
         .order('nome')
-
-      if (error) throw error
+      
+      console.log('📊 Resultado da query:', { data, error, count: data?.length })
+      
+      if (error) {
+        console.error('❌ Erro na query:', error)
+        throw error
+      }
+      
+      console.log('✅ Equipes encontradas:', data?.map(e => e.nome))
       setEquipes(data || [])
+      console.log('📝 Estado de equipes atualizado com', data?.length || 0, 'itens')
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar equipes')
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar equipes'
+      console.error('❌ Erro em fetchEquipesBySecao:', errorMessage)
+      setError(errorMessage)
+      setEquipes([])
     } finally {
       setLoading(false)
+      console.log('🏁 fetchEquipesBySecao finalizado')
     }
   }, [])
 
@@ -100,6 +124,11 @@ export const useOcorrenciasAeronauticas = () => {
     try {
       setLoading(true)
       setError(null)
+
+      // Validar campos obrigatórios
+      if (!formData.equipe || !formData.cidade_aeroporto) {
+        throw new Error('Nome da equipe e cidade do aeroporto são obrigatórios')
+      }
 
       // Obter usuário atual
       const { data: { user } } = await supabase.auth.getUser()
@@ -193,6 +222,8 @@ export const useOcorrenciasAeronauticas = () => {
     fetchSecoes()
   }, [])
 
+
+
   return {
     secoes,
     equipes,
@@ -205,6 +236,7 @@ export const useOcorrenciasAeronauticas = () => {
     validateDate,
     calculateTotalTime,
     validateTimeSequence,
-    setError
+    setError,
+    setEquipes  // Exportar setEquipes para permitir limpeza manual
   }
 }

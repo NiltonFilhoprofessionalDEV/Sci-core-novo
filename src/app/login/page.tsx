@@ -82,7 +82,7 @@ export default function LoginPage() {
           <div className="flex-1 p-12 flex flex-col justify-center bg-white/5 backdrop-blur-sm">
             <div className="max-w-md mx-auto w-full">
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-[#1f1f1f] mb-2">Entrar</h2>
+                <h2 className="text-3xl font-bold text-black mb-2">Entrar</h2>
                 <p className="text-[#7a5b3e]/70">Entre com suas credenciais</p>
               </div>
 
@@ -95,7 +95,7 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {/* Campo Email */}
                 <div>
-                  <label className="block text-[#1f1f1f] text-sm font-medium mb-2">
+                  <label className="block text-black text-sm font-medium mb-2">
                     Email
                   </label>
                   <div className="relative">
@@ -104,7 +104,7 @@ export default function LoginPage() {
                       {...register('email')}
                       type="email"
                       placeholder="seu@email.com"
-                      className="w-full pl-12 pr-4 py-3 bg-white/50 border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#fa4b00]/50 focus:border-[#fa4b00] transition-all duration-300 text-[#1f1f1f] placeholder:text-[#7a5b3e]/60"
+                      className="w-full pl-12 pr-4 py-3 bg-white/50 border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#fa4b00]/50 focus:border-[#fa4b00] transition-all duration-300 text-black placeholder:text-[#7a5b3e]/60"
                     />
                   </div>
                   {errors.email && (
@@ -114,7 +114,7 @@ export default function LoginPage() {
 
                 {/* Campo Senha */}
                 <div>
-                  <label className="block text-[#1f1f1f] text-sm font-medium mb-2">
+                  <label className="block text-black text-sm font-medium mb-2">
                     Senha
                   </label>
                   <div className="relative">
@@ -123,7 +123,7 @@ export default function LoginPage() {
                       {...register('password')}
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      className="w-full pl-12 pr-12 py-3 bg-white/50 border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#fa4b00]/50 focus:border-[#fa4b00] transition-all duration-300 text-[#1f1f1f] placeholder:text-[#7a5b3e]/60"
+                      className="w-full pl-12 pr-12 py-3 bg-white/50 border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#fa4b00]/50 focus:border-[#fa4b00] transition-all duration-300 text-black placeholder:text-[#7a5b3e]/60"
                     />
                     <button
                       type="button"
@@ -146,7 +146,7 @@ export default function LoginPage() {
                       type="checkbox"
                       className="w-4 h-4 text-[#fa4b00] bg-white/50 border-[#cdbdae]/30 rounded focus:ring-[#fa4b00]/50 focus:ring-2"
                     />
-                    <span className="ml-2 text-sm text-[#1f1f1f]">Lembrar-me</span>
+                    <span className="ml-2 text-sm text-black">Lembrar-me</span>
                   </label>
                   <a
                     href="/forgot-password"

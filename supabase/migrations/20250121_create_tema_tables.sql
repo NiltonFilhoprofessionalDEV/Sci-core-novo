@@ -41,20 +41,7 @@ CREATE TABLE IF NOT EXISTS ocorrencias_nao_aeronauticas (
 
 COMMENT ON TABLE ocorrencias_nao_aeronauticas IS 'Eventos e emergências não relacionados a aeronaves';
 
--- =====================================================
--- 3. ATIVIDADES ACESSÓRIAS
--- =====================================================
-CREATE TABLE IF NOT EXISTS atividades_acessorias (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    secao_id UUID NOT NULL REFERENCES secoes(id) ON DELETE CASCADE,
-    equipe_id UUID REFERENCES equipes(id) ON DELETE SET NULL,
-    usuario_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    data_referencia DATE NOT NULL DEFAULT CURRENT_DATE,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
 
-COMMENT ON TABLE atividades_acessorias IS 'Atividades complementares e de apoio às operações';
 
 -- =====================================================
 -- 4. TAF (TERMINAL AERODROME FORECAST)
@@ -228,7 +215,7 @@ COMMENT ON TABLE controle_uniformes_recebidos IS 'Gestão de recebimento e distr
 -- Habilitar RLS em todas as tabelas
 ALTER TABLE ocorrencias_aeronauticas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ocorrencias_nao_aeronauticas ENABLE ROW LEVEL SECURITY;
-ALTER TABLE atividades_acessorias ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE taf_previsoes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ptr_ba_provas_teoricas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ptr_ba_horas_treinamento ENABLE ROW LEVEL SECURITY;
@@ -308,7 +295,7 @@ DECLARE
     table_name TEXT;
     table_names TEXT[] := ARRAY[
         'ocorrencias_nao_aeronauticas',
-        'atividades_acessorias',
+
         'taf_previsoes',
         'ptr_ba_provas_teoricas',
         'ptr_ba_horas_treinamento',
@@ -365,7 +352,7 @@ DECLARE
     table_names TEXT[] := ARRAY[
         'ocorrencias_aeronauticas',
         'ocorrencias_nao_aeronauticas',
-        'atividades_acessorias',
+
         'taf_previsoes',
         'ptr_ba_provas_teoricas',
         'ptr_ba_horas_treinamento',
@@ -415,7 +402,7 @@ DECLARE
     table_names TEXT[] := ARRAY[
         'ocorrencias_aeronauticas',
         'ocorrencias_nao_aeronauticas',
-        'atividades_acessorias',
+
         'taf_previsoes',
         'ptr_ba_provas_teoricas',
         'ptr_ba_horas_treinamento',
@@ -460,7 +447,7 @@ COMMENT ON TABLE tema_tables_metadata IS 'Metadados das tabelas de temas para do
 INSERT INTO tema_tables_metadata (table_name, tema_id, tema_nome, tema_descricao) VALUES
 ('ocorrencias_aeronauticas', 'ocorrencias-aeronauticas', 'Ocorrências Aeronáuticas', 'Registro de eventos relacionados a aeronaves e operações aéreas'),
 ('ocorrencias_nao_aeronauticas', 'ocorrencia-nao-aeronautica', 'Ocorrência Não Aeronáutica', 'Eventos e emergências não relacionados a aeronaves'),
-('atividades_acessorias', 'atividades-acessorias', 'Atividades Acessórias', 'Atividades complementares e de apoio às operações'),
+
 ('taf_previsoes', 'taf', 'TAF', 'Terminal Aerodrome Forecast - Previsão meteorológica'),
 ('ptr_ba_provas_teoricas', 'ptr-ba-prova-teorica', 'PTR-BA - Prova Teórica', 'Registro de provas teóricas do programa de treinamento'),
 ('ptr_ba_horas_treinamento', 'ptr-ba-horas-treinamento', 'PTR-BA - Horas de Treinamento', 'Controle de horas práticas de treinamento'),

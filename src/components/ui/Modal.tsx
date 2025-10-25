@@ -113,7 +113,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         aria-labelledby="modal-title"
         className={`
           relative w-full max-w-6xl max-h-[95vh] 
-          bg-gradient-to-br from-white via-[#cdbdae]/5 to-white
+          bg-white
           shadow-2xl rounded-2xl overflow-hidden border border-[#cdbdae]/20
           transform transition-all duration-300 ease-out
           ${isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4'}
@@ -126,12 +126,21 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       >
         {/* Header - Com gradiente sutil da paleta do sistema */}
         <div className="flex items-center justify-between p-6 border-b border-[#cdbdae]/30 bg-gradient-to-r from-[#cdbdae]/10 to-transparent flex-shrink-0">
-          <h2 
-            id="modal-title"
-            className="text-2xl font-semibold text-[#7a5b3e] leading-tight tracking-tight"
-          >
-            {title}
-          </h2>
+          <div className="flex-1">
+            <h2 
+              id="modal-title"
+              className="text-2xl font-semibold text-[#7a5b3e] leading-tight tracking-tight"
+            >
+              {title}
+            </h2>
+            {title === 'Ocorrências Aeronáuticas' && (
+              <div className="mt-2">
+                <p className="text-sm font-medium text-amber-600 leading-relaxed">
+                  ⚠️ Realizar o preenchimento sempre que houver ocorrência.
+                </p>
+              </div>
+            )}
+          </div>
           <button
             onClick={onClose}
             className={`

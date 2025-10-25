@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { Building2, Users, Calendar, FileText, Clock, X, RotateCcw, Save } from 'lucide-react'
 import { useOcorrenciasAeronauticas, FormData } from '@/hooks/useOcorrenciasAeronauticas'
 
 interface OcorrenciaAeronauticaFormProps {
@@ -12,6 +13,8 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
   onSuccess,
   onCancel
 }) => {
+  console.log('🚀 OcorrenciaAeronauticaForm renderizado!')
+  
   const {
     secoes,
     equipes,
@@ -23,7 +26,8 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
     validateDate,
     calculateTotalTime,
     validateTimeSequence,
-    setError
+    setError,
+    setEquipes
   } = useOcorrenciasAeronauticas()
 
   const [formData, setFormData] = useState<FormData>({
@@ -55,11 +59,40 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
 
   // Buscar equipes quando seção mudar
   useEffect(() => {
+    console.log('🔄 useEffect disparado - formData.secao_id:', formData.secao_id)
+    console.log('📊 Estado atual das equipes:', equipes)
+    console.log('⏳ Estado de loading:', loading)
+    
     if (formData.secao_id) {
+      console.log('📞 Chamando fetchEquipesBySecao para seção:', formData.secao_id)
       fetchEquipesBySecao(formData.secao_id)
-      setFormData(prev => ({ ...prev, equipe_id: '' })) // Limpar equipe selecionada
+      // Limpar equipe selecionada
+      setFormData(prev => ({ ...prev, equipe_id: '' }))
+      console.log('🧹 Equipe limpa do formulário')
+    } else {
+      console.log('⚠️ Nenhuma seção selecionada, limpando equipes')
+      setEquipes([])
     }
   }, [formData.secao_id, fetchEquipesBySecao])
+
+  // Debug adicional para monitorar mudanças no estado das equipes
+  useEffect(() => {
+    console.log('🔍 Estado das equipes mudou:', {
+      quantidade: equipes.length,
+      equipes: equipes,
+      loading: loading
+    })
+  }, [equipes, loading])
+
+  // Log adicional para verificar renderização do select
+  useEffect(() => {
+    console.log('🎨 Renderizando select de equipes:', {
+      secaoSelecionada: formData.secao_id,
+      equipesDisponiveis: equipes.length,
+      loading: loading,
+      equipesData: equipes
+    })
+  }, [formData.secao_id, equipes, loading])
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -70,12 +103,32 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
     }
   }
 
+  // Função para lidar com seleção de equipe
+  const handleEquipeChange = (equipeId: string) => {
+    const equipeSelecionada = equipes.find(equipe => equipe.id === equipeId)
+    const secaoSelecionada = secoes.find(secao => secao.id === formData.secao_id)
+    
+    setFormData(prev => ({
+      ...prev,
+      equipe_id: equipeId,
+      equipe: equipeSelecionada?.nome || '',
+      cidade_aeroporto: secaoSelecionada?.cidade || ''
+    }))
+    
+    // Limpar erro do campo quando usuário selecionar
+    if (fieldErrors.equipe_id) {
+      setFieldErrors(prev => ({ ...prev, equipe_id: '' }))
+    }
+  }
+
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {}
 
     // Validar campos obrigatórios
     if (!formData.secao_id) errors.secao_id = 'Base é obrigatória'
     if (!formData.equipe_id) errors.equipe_id = 'Equipe é obrigatória'
+    if (!formData.equipe) errors.equipe = 'Nome da equipe é obrigatório'
+    if (!formData.cidade_aeroporto) errors.cidade_aeroporto = 'Cidade do aeroporto é obrigatória'
     if (!formData.data_ocorrencia) errors.data_ocorrencia = 'Data da ocorrência é obrigatória'
     if (!formData.posicionamento_intervencao) errors.posicionamento_intervencao = 'Posicionamento/Intervenção é obrigatório'
     if (!formData.local_ocorrencia.trim()) errors.local_ocorrencia = 'Local da ocorrência é obrigatório'
@@ -176,42 +229,27 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
 
   return (
     <div className="p-6">
-      {/* Cabeçalho com alerta */}
-      <div className="mb-8">
-        <div className="flex items-start gap-4 p-5 bg-orange-50 border border-orange-200 rounded-lg">
-          <div className="flex-shrink-0 w-6 h-6 mt-1">
-            <svg className="w-6 h-6 text-orange-700" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-base font-semibold text-orange-900 leading-relaxed">
-              Deve ser preenchido sempre que houver uma ocorrência aeronáutica.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Formulário */}
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Linha 1: Base e Data */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="secao_id" className="block text-base font-semibold text-gray-900 mb-3 leading-relaxed">
+            <label htmlFor="secao_id" className="flex items-center gap-2 text-base font-semibold text-black mb-3 leading-relaxed">
+              <Building2 className="w-4 h-4 text-[#7a5b3e]" />
               Base *
             </label>
             <select
               id="secao_id"
               value={formData.secao_id}
               onChange={(e) => handleInputChange('secao_id', e.target.value)}
-              className={`w-full px-4 py-3 text-base text-gray-900 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed ${
+              className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed ${
                 fieldErrors.secao_id ? 'border-red-500' : 'border-gray-400'
               }`}
               disabled={loading}
             >
               <option value="" className="text-gray-700">Selecione uma base</option>
               {secoes.map((secao) => (
-                <option key={secao.id} value={secao.id} className="text-gray-900">
+                <option key={secao.id} value={secao.id} className="text-black">
                   {secao.nome} - {secao.cidade}/{secao.estado}
                 </option>
               ))}
@@ -222,7 +260,8 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
           </div>
 
           <div>
-            <label htmlFor="data_ocorrencia" className="block text-base font-semibold text-gray-900 mb-3 leading-relaxed">
+            <label htmlFor="data_ocorrencia" className="flex items-center gap-2 text-base font-semibold text-black mb-3 leading-relaxed">
+              <Calendar className="w-4 h-4 text-[#7a5b3e]" />
               Data da ocorrência *
             </label>
             <input
@@ -231,7 +270,7 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
               value={formData.data_ocorrencia}
               onChange={(e) => handleInputChange('data_ocorrencia', e.target.value)}
               max={new Date().toISOString().split('T')[0]}
-              className={`w-full px-4 py-3 text-base text-gray-900 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed ${
+              className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed ${
                 fieldErrors.data_ocorrencia ? 'border-red-500' : 'border-gray-400'
               }`}
             />
@@ -244,22 +283,35 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
         {/* Linha 2: Equipe e Tipo */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="equipe_id" className="block text-base font-semibold text-gray-900 mb-3 leading-relaxed">
-              Equipe *
+            <label htmlFor="equipe_id" className="flex items-center gap-2 text-base font-semibold text-black mb-2 leading-relaxed">
+              <Users className="w-4 h-4 text-[#7a5b3e]" />
+              Equipe * {loading && <span className="text-orange-500">(Carregando...)</span>}
             </label>
+            <p className="mb-3 text-sm text-gray-600 leading-relaxed">
+              Selecione a base para poder selecionar a equipe.
+            </p>
             <select
               id="equipe_id"
               value={formData.equipe_id}
-              onChange={(e) => handleInputChange('equipe_id', e.target.value)}
-              className={`w-full px-4 py-3 text-base text-gray-900 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed ${
+              onChange={(e) => handleEquipeChange(e.target.value)}
+              className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed ${
                 fieldErrors.equipe_id ? 'border-red-500' : 'border-gray-400'
               }`}
               disabled={loading || !formData.secao_id}
             >
-              <option value="" className="text-gray-700">Selecione uma equipe</option>
+              <option value="" className="text-gray-700">
+                {!formData.secao_id 
+                  ? 'Selecione uma base primeiro' 
+                  : loading 
+                    ? 'Carregando equipes...' 
+                    : equipes.length === 0 
+                      ? 'Nenhuma equipe encontrada'
+                      : 'Selecione uma equipe'
+                }
+              </option>
               {equipes.map((equipe) => (
-                <option key={equipe.id} value={equipe.id} className="text-gray-900">
-                  {equipe.nome} ({equipe.codigo})
+                <option key={equipe.id} value={equipe.id} className="text-black">
+                  {equipe.nome}
                 </option>
               ))}
             </select>
@@ -269,35 +321,40 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
           </div>
 
           <div>
-            <label htmlFor="tipo_ocorrencia" className="block text-base font-semibold text-gray-900 mb-3 leading-relaxed">
+            <label htmlFor="tipo_ocorrencia" className="flex items-center gap-2 text-base font-semibold text-black mb-2 leading-relaxed">
+              <FileText className="w-4 h-4 text-[#7a5b3e]" />
               Tipo de ocorrência
             </label>
+            <p className="mb-3 text-sm text-gray-600 leading-relaxed">
+              Esse item é preenchido automaticamente pelo sistema.
+            </p>
             <input
               type="text"
               id="tipo_ocorrencia"
               value={formData.tipo_ocorrencia}
               readOnly
-              className="w-full px-4 py-3 text-base border border-gray-400 rounded-lg bg-gray-100 text-gray-800 font-medium leading-relaxed"
+              className="w-full px-4 py-3 text-base border border-gray-400 rounded-lg bg-gray-100 text-black font-medium leading-relaxed"
             />
           </div>
         </div>
 
         {/* Linha 3: Posicionamento/Intervenção */}
         <div>
-          <label htmlFor="posicionamento_intervencao" className="block text-base font-semibold text-gray-900 mb-3 leading-relaxed">
+          <label htmlFor="posicionamento_intervencao" className="flex items-center gap-2 text-base font-semibold text-black mb-3 leading-relaxed">
+            <FileText className="w-4 h-4 text-[#7a5b3e]" />
             Posicionamento/Intervenção *
           </label>
           <select
             id="posicionamento_intervencao"
             value={formData.posicionamento_intervencao}
             onChange={(e) => handleInputChange('posicionamento_intervencao', e.target.value)}
-            className={`w-full px-4 py-3 text-base text-gray-900 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed ${
+            className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed ${
               fieldErrors.posicionamento_intervencao ? 'border-red-500' : 'border-gray-400'
             }`}
           >
             <option value="" className="text-gray-700">Selecione uma opção</option>
-            <option value="Posicionamento" className="text-gray-900">Posicionamento</option>
-            <option value="Intervenção" className="text-gray-900">Intervenção</option>
+            <option value="Posicionamento" className="text-black">Posicionamento</option>
+            <option value="Intervenção" className="text-black">Intervenção</option>
           </select>
           {fieldErrors.posicionamento_intervencao && (
             <p className="mt-2 text-base text-red-700 font-medium">{fieldErrors.posicionamento_intervencao}</p>
@@ -306,16 +363,20 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
 
         {/* Linha 4: Local da Ocorrência */}
         <div>
-          <label htmlFor="local_ocorrencia" className="block text-base font-semibold text-gray-900 mb-3 leading-relaxed">
+          <label htmlFor="local_ocorrencia" className="flex items-center gap-2 text-base font-semibold text-black mb-2 leading-relaxed">
+            <FileText className="w-4 h-4 text-[#7a5b3e]" />
             Local da Ocorrência *
           </label>
+          <p className="mb-3 text-sm text-gray-600 leading-relaxed">
+            Preencha o local com a localização pelo mapa de Grade interno (EX: G-11,W-13), com o nome da Taxway ou cabeceira (EX:Taxway T , Cabeceira 14), com O nome da Instalação ou Hangar juntamente com a posição no mapa de grade (EX: Teca: H-14 ou Hangar da Sette; J-23)
+          </p>
           <input
             type="text"
             id="local_ocorrencia"
             value={formData.local_ocorrencia}
             onChange={(e) => handleInputChange('local_ocorrencia', e.target.value)}
-            placeholder="Ex: Grade A1, Taxway B, Pista 09/27, Prédio Terminal"
-            className={`w-full px-4 py-3 text-base text-gray-900 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed placeholder-gray-600 ${
+            placeholder="EX: G-11,W-13 , Taxway T , Cabeceira 14, Teca: H-14"
+            className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed placeholder-gray-600 ${
               fieldErrors.local_ocorrencia ? 'border-red-500' : 'border-gray-400'
             }`}
           />
@@ -326,13 +387,19 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
 
         {/* Seção de Horários */}
         <div className="border-t border-gray-300 pt-8">
-          <h3 className="text-xl font-bold text-gray-900 mb-6 leading-relaxed">Horários da Ocorrência</h3>
+          <h3 className="text-xl font-bold text-black mb-6 leading-relaxed">Horários da Ocorrência</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="hora_acionamento" className="block text-base font-semibold text-gray-900 mb-3 leading-relaxed">
+            <div className="flex flex-col">
+              <label htmlFor="hora_acionamento" className="flex items-center gap-2 text-base font-semibold text-black mb-2 leading-relaxed">
+                <Clock className="w-4 h-4 text-[#7a5b3e]" />
                 Hora do acionamento *
               </label>
+              <div className="h-12 mb-3 flex items-start">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Horário em que a equipe da SCI foi acionada via sirene ou rádio.
+                </p>
+              </div>
               <input
                 type="text"
                 id="hora_acionamento"
@@ -340,7 +407,7 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
                 onChange={(e) => handleTimeInputChange('hora_acionamento', e.target.value)}
                 placeholder="HH:MM:SS"
                 maxLength={8}
-                className={`w-full px-4 py-3 text-base text-gray-900 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed placeholder-gray-600 font-mono ${
+                className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed placeholder-gray-600 font-mono ${
                   fieldErrors.hora_acionamento ? 'border-red-500' : 'border-gray-400'
                 }`}
               />
@@ -349,10 +416,16 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
               )}
             </div>
 
-            <div>
-              <label htmlFor="tempo_chegada_primeiro_cci" className="block text-base font-semibold text-gray-900 mb-3 leading-relaxed">
+            <div className="flex flex-col">
+              <label htmlFor="tempo_chegada_primeiro_cci" className="flex items-center gap-2 text-base font-semibold text-black mb-2 leading-relaxed">
+                <Clock className="w-4 h-4 text-[#7a5b3e]" />
                 Tempo para chegada do 1º CCI *
               </label>
+              <div className="h-12 mb-3 flex items-start">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Tempo cronometrado do tempo em que o primeiro CCI se posicionou ou realizou a intervenção.
+                </p>
+              </div>
               <input
                 type="text"
                 id="tempo_chegada_primeiro_cci"
@@ -360,7 +433,7 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
                 onChange={(e) => handleTimeInputChange('tempo_chegada_primeiro_cci', e.target.value)}
                 placeholder="HH:MM:SS"
                 maxLength={8}
-                className={`w-full px-4 py-3 text-base text-gray-900 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed placeholder-gray-600 font-mono ${
+                className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed placeholder-gray-600 font-mono ${
                   fieldErrors.tempo_chegada_primeiro_cci ? 'border-red-500' : 'border-gray-400'
                 }`}
               />
@@ -369,10 +442,16 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
               )}
             </div>
 
-            <div>
-              <label htmlFor="tempo_chegada_ultimo_cci" className="block text-base font-semibold text-gray-900 mb-3 leading-relaxed">
+            <div className="flex flex-col">
+              <label htmlFor="tempo_chegada_ultimo_cci" className="flex items-center gap-2 text-base font-semibold text-black mb-2 leading-relaxed">
+                <Clock className="w-4 h-4 text-[#7a5b3e]" />
                 Tempo para chegada do último CCI *
               </label>
+              <div className="h-12 mb-3 flex items-start">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Tempo cronometrado do tempo em que o último CCI se posicionou ou realizou a intervenção.
+                </p>
+              </div>
               <input
                 type="text"
                 id="tempo_chegada_ultimo_cci"
@@ -380,7 +459,7 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
                 onChange={(e) => handleTimeInputChange('tempo_chegada_ultimo_cci', e.target.value)}
                 placeholder="HH:MM:SS"
                 maxLength={8}
-                className={`w-full px-4 py-3 text-base text-gray-900 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed placeholder-gray-600 font-mono ${
+                className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed placeholder-gray-600 font-mono ${
                   fieldErrors.tempo_chegada_ultimo_cci ? 'border-red-500' : 'border-gray-400'
                 }`}
               />
@@ -389,10 +468,16 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
               )}
             </div>
 
-            <div>
-              <label htmlFor="hora_termino" className="block text-base font-semibold text-gray-900 mb-3 leading-relaxed">
+            <div className="flex flex-col">
+              <label htmlFor="hora_termino" className="flex items-center gap-2 text-base font-semibold text-black mb-2 leading-relaxed">
+                <Clock className="w-4 h-4 text-[#7a5b3e]" />
                 Hora do término *
               </label>
+              <div className="h-12 mb-3 flex items-start">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Hora em que o BA-CE deu por encerrado a ocorrência.
+                </p>
+              </div>
               <input
                 type="text"
                 id="hora_termino"
@@ -400,7 +485,7 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
                 onChange={(e) => handleTimeInputChange('hora_termino', e.target.value)}
                 placeholder="HH:MM:SS"
                 maxLength={8}
-                className={`w-full px-4 py-3 text-base text-gray-900 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed placeholder-gray-600 font-mono ${
+                className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed placeholder-gray-600 font-mono ${
                   fieldErrors.hora_termino ? 'border-red-500' : 'border-gray-400'
                 }`}
               />
@@ -412,14 +497,15 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
 
           {/* Tempo Total Calculado */}
           <div className="mt-6">
-            <label className="block text-base font-semibold text-gray-900 mb-3 leading-relaxed">
+            <label className="flex items-center gap-2 text-base font-semibold text-black mb-3 leading-relaxed">
+              <Clock className="w-4 h-4 text-[#7a5b3e]" />
               Tempo da Ocorrência (calculado automaticamente)
             </label>
             <input
               type="text"
               value={tempoTotal}
               readOnly
-              className="w-full md:w-48 px-4 py-3 text-base border border-gray-400 rounded-lg bg-gray-100 text-gray-800 font-mono font-semibold leading-relaxed"
+              className="w-full md:w-48 px-4 py-3 text-base border border-gray-400 rounded-lg bg-gray-100 text-black font-mono font-semibold leading-relaxed"
             />
           </div>
         </div>
@@ -432,40 +518,32 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
         )}
 
         {/* Botões */}
-        <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-gray-300">
-          <button
-            type="button"
-            onClick={handleClear}
-            disabled={isSubmitting}
-            className="px-8 py-3 text-base font-semibold border border-gray-400 text-gray-800 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed leading-relaxed transition-colors duration-200"
-          >
-            Limpar formulário
-          </button>
-          
-          <button
-            type="submit"
-            disabled={isSubmitting || loading}
-            className="px-8 py-3 text-base font-semibold bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 leading-relaxed transition-colors duration-200"
-          >
-            {isSubmitting && (
-              <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            )}
-            {isSubmitting ? 'Salvando...' : 'Salvar'}
-          </button>
-
+        <div className="flex justify-end gap-4 pt-8 border-t border-gray-300">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
               disabled={isSubmitting}
-              className="px-8 py-3 text-base font-semibold text-gray-800 hover:text-gray-900 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed leading-relaxed transition-colors duration-200"
+              className="px-8 py-3 text-base font-normal text-black hover:text-gray-900 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed leading-relaxed transition-colors duration-200"
             >
               Cancelar
             </button>
           )}
+          <button
+            type="submit"
+            disabled={isSubmitting || loading}
+            className="px-8 py-3 text-base font-normal bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 leading-relaxed transition-colors duration-200"
+          >
+            {isSubmitting ? (
+              <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {isSubmitting ? 'Salvando...' : 'Salvar'}
+          </button>
         </div>
       </form>
     </div>

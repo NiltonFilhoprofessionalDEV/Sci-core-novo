@@ -217,8 +217,8 @@ export function AtividadesAcessoriasModal({
                 } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <option value="">Selecione uma base</option>
-                {bases.map((base) => (
-                  <option key={base.id} value={base.id}>
+                {bases.map((base, index) => (
+                  <option key={`base-${base.id}-${index}`} value={base.id}>
                     {base.nome} - {base.cidade}
                   </option>
                 ))}
@@ -266,8 +266,8 @@ export function AtividadesAcessoriasModal({
                 <option value="">
                   {!formData.base_id ? 'Selecione uma base primeiro' : 'Selecione uma equipe'}
                 </option>
-                {equipes.map((equipe) => (
-                  <option key={equipe.id} value={equipe.id}>
+                {equipes.map((equipe, index) => (
+                  <option key={`equipe-${equipe.id}-${index}`} value={equipe.id}>
                     {equipe.nome}
                   </option>
                 ))}
@@ -291,8 +291,8 @@ export function AtividadesAcessoriasModal({
                   validationErrors.tipo_atividade ? 'border-red-300 bg-red-50' : 'border-gray-300'
                 } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {tiposAtividade.map((tipo) => (
-                  <option key={tipo.id} value={tipo.nome}>
+                {tiposAtividade.map((tipo, index) => (
+                  <option key={`tipo-${tipo.id}-${index}`} value={tipo.nome}>
                     {tipo.nome}
                   </option>
                 ))}

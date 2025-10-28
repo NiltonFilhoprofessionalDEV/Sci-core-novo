@@ -6,7 +6,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { supabase } from '@/lib/supabase'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { 
   Save, 
@@ -40,7 +40,6 @@ interface IndicadorFormProps {
 }
 
 export function IndicadorForm({ indicador, onSave, onCancel, valorInicial }: IndicadorFormProps) {
-  const supabase = useSupabaseClient()
   const { user } = useAuthContext()
   const [valor, setValor] = useState<string>('')
   const [observacoes, setObservacoes] = useState<string>('')
@@ -376,3 +375,5 @@ export function IndicadorForm({ indicador, onSave, onCancel, valorInicial }: Ind
     </Card>
   )
 }
+
+export default IndicadorForm

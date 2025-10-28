@@ -322,8 +322,8 @@ export function TAFModal({
                 } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <option value="">Selecione a base</option>
-                {secoes.map((secao) => (
-                  <option key={secao.id} value={secao.id}>
+                {secoes.map((secao, index) => (
+                  <option key={`secao-${secao.id}-${index}`} value={secao.id}>
                     {secao.nome} - {secao.cidade}
                   </option>
                 ))}
@@ -369,8 +369,8 @@ export function TAFModal({
                 } ${loading || !formData.secao_id ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <option value="">Selecione a equipe</option>
-                {equipes.map((equipe) => (
-                  <option key={equipe.id} value={equipe.id}>
+                {equipes.map((equipe, index) => (
+                  <option key={`equipe-${equipe.id}-${index}`} value={equipe.id}>
                     {equipe.nome}
                   </option>
                 ))}
@@ -381,94 +381,162 @@ export function TAFModal({
             </div>
           </div>
 
-          {/* Lista de funcionários */}
+          {/* Tabela de funcionários */}
           {resultados.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Users className="w-5 h-5" />
                 Funcionários da Equipe
               </h3>
 
-              {resultados.map((resultado) => (
-                <div key={resultado.funcionario_id} className="bg-gray-50 rounded-lg p-6">
-                  <h4 className="font-medium text-gray-900 mb-4">{resultado.nome}</h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    {/* Idade */}
-                    <div>
-                      <label className="text-sm font-medium text-gray-900 mb-1 block">
-                        Idade *
-                      </label>
-                      <input
-                        type="number"
-                        min="18"
-                        max="70"
-                        value={resultado.idade || ''}
-                        onChange={(e) => updateResultado(resultado.funcionario_id, 'idade', parseInt(e.target.value) || null)}
-                        disabled={loading || saving}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent transition-colors text-black placeholder-gray-600 ${
-                          validationErrors[`${resultado.funcionario_id}_idade`] ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                        } ${loading || saving ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        placeholder="Ex: 35"
-                      />
-                      {validationErrors[`${resultado.funcionario_id}_idade`] && (
-                        <p className="text-red-600 text-xs mt-1">{validationErrors[`${resultado.funcionario_id}_idade`]}</p>
-                      )}
-                    </div>
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900 text-sm">
+                          Nome do Funcionário
+                        </th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-900 text-sm min-w-[80px]">
+                          Idade <span className="text-red-500">*</span>
+                        </th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-900 text-sm min-w-[100px]">
+                          Tempo Total
+                        </th>
+                        <th className="text-left py-3 px-3 font-semibold text-gray-900 text-sm min-w-[100px]">
+                          Desempenho
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900 text-sm min-w-[200px]">
+                          Observações
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resultados.map((resultado, index) => (
+                        <tr 
+                          key={`resultado-${resultado.funcionario_id}-${index}`} 
+                          className={`
+                            border-b border-gray-100 transition-all duration-200 hover:bg-gray-50/80
+                            ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}
+                          `}
+                        >
+                          {/* Nome */}
+                          <td className="py-2 px-4">
+                            <div className="font-medium text-gray-900 text-sm">
+                              {resultado.nome}
+                            </div>
+                          </td>
 
-                    {/* Tempo total */}
-                    <div>
-                      <label className="text-sm font-medium text-gray-900 mb-1 block">
-                        Tempo Total
-                      </label>
-                      <input
-                        type="text"
-                        value={resultado.tempo_total}
-                        onChange={(e) => handleTimeChange(resultado.funcionario_id, e.target.value)}
-                        disabled={loading || saving}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent transition-colors text-black placeholder-gray-600 ${
-                          validationErrors[`${resultado.funcionario_id}_tempo_total`] ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                        } ${loading || saving ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        placeholder="HH:MM:SS"
-                        maxLength={8}
-                      />
-                      {validationErrors[`${resultado.funcionario_id}_tempo_total`] && (
-                        <p className="text-red-600 text-xs mt-1">{validationErrors[`${resultado.funcionario_id}_tempo_total`]}</p>
-                      )}
-                    </div>
+                          {/* Idade */}
+                          <td className="py-2 px-3">
+                            <div className="relative">
+                              <input
+                                type="number"
+                                min="18"
+                                max="70"
+                                value={resultado.idade || ''}
+                                onChange={(e) => updateResultado(resultado.funcionario_id, 'idade', parseInt(e.target.value) || null)}
+                                disabled={loading || saving}
+                                className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-gray-500 ${
+                                  validationErrors[`${resultado.funcionario_id}_idade`] 
+                                    ? 'border-red-300 bg-red-50' 
+                                    : 'border-gray-300 hover:border-gray-400'
+                                } ${loading || saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                placeholder="35"
+                              />
+                              {validationErrors[`${resultado.funcionario_id}_idade`] && (
+                                <div className="absolute -bottom-5 left-0 text-red-600 text-xs whitespace-nowrap">
+                                  {validationErrors[`${resultado.funcionario_id}_idade`]}
+                                </div>
+                              )}
+                            </div>
+                          </td>
 
-                    {/* Desempenho */}
-                    <div>
-                      <label className="text-sm font-medium text-gray-900 mb-1 block">
-                        Desempenho
-                      </label>
-                      <div className={`w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 ${getDesempenhoColor(resultado.desempenho)} font-medium`}>
-                        {getDesempenhoText(resultado.desempenho)}
-                      </div>
-                    </div>
+                          {/* Tempo Total */}
+                          <td className="py-2 px-3">
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={resultado.tempo_total}
+                                onChange={(e) => handleTimeChange(resultado.funcionario_id, e.target.value)}
+                                disabled={loading || saving}
+                                className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-gray-500 font-mono ${
+                                  validationErrors[`${resultado.funcionario_id}_tempo_total`] 
+                                    ? 'border-red-300 bg-red-50' 
+                                    : 'border-gray-300 hover:border-gray-400'
+                                } ${loading || saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                placeholder="HH:MM:SS"
+                                maxLength={8}
+                              />
+                              {validationErrors[`${resultado.funcionario_id}_tempo_total`] && (
+                                <div className="absolute -bottom-5 left-0 text-red-600 text-xs whitespace-nowrap">
+                                  {validationErrors[`${resultado.funcionario_id}_tempo_total`]}
+                                </div>
+                              )}
+                            </div>
+                          </td>
 
-                    {/* Observações */}
-                    <div className="md:col-span-2">
-                      <label className="text-sm font-medium text-gray-900 mb-1 block">
-                        Observações
-                      </label>
-                      <textarea
-                        value={resultado.observacoes}
-                        onChange={(e) => updateResultado(resultado.funcionario_id, 'observacoes', e.target.value)}
-                        disabled={loading || saving}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent transition-colors resize-none text-black placeholder-gray-600 ${
-                          validationErrors[`${resultado.funcionario_id}_observacoes`] ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                        } ${loading || saving ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        placeholder="Ex: Férias, atestado médico, recusa..."
-                        rows={2}
-                      />
-                      {validationErrors[`${resultado.funcionario_id}_observacoes`] && (
-                        <p className="text-red-600 text-xs mt-1">{validationErrors[`${resultado.funcionario_id}_observacoes`]}</p>
-                      )}
-                    </div>
-                  </div>
+                          {/* Desempenho */}
+                          <td className="py-2 px-3">
+                            <div className={`
+                              px-2 py-1.5 text-sm rounded text-center font-medium border transition-all
+                              ${resultado.desempenho === null 
+                                ? 'bg-gray-100 border-gray-200 text-gray-500' 
+                                : resultado.desempenho === 0 
+                                  ? 'bg-red-50 border-red-200 text-red-700' 
+                                  : resultado.desempenho >= 8 
+                                    ? 'bg-green-50 border-green-200 text-green-700' 
+                                    : resultado.desempenho >= 7 
+                                      ? 'bg-yellow-50 border-yellow-200 text-yellow-700' 
+                                      : 'bg-orange-50 border-orange-200 text-orange-700'
+                              }
+                            `}>
+                              {getDesempenhoText(resultado.desempenho)}
+                            </div>
+                          </td>
+
+                          {/* Observações */}
+                          <td className="py-2 px-4">
+                            <div className="relative">
+                              <textarea
+                                value={resultado.observacoes}
+                                onChange={(e) => updateResultado(resultado.funcionario_id, 'observacoes', e.target.value)}
+                                disabled={loading || saving}
+                                className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all resize-none text-black placeholder-gray-500 ${
+                                  validationErrors[`${resultado.funcionario_id}_observacoes`] 
+                                    ? 'border-red-300 bg-red-50' 
+                                    : 'border-gray-300 hover:border-gray-400'
+                                } ${loading || saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                placeholder="Ex: Férias, atestado médico, recusa..."
+                                rows={1}
+                                onFocus={(e) => {
+                                  e.target.rows = 2
+                                }}
+                                onBlur={(e) => {
+                                  if (!e.target.value.trim()) {
+                                    e.target.rows = 1
+                                  }
+                                }}
+                              />
+                              {validationErrors[`${resultado.funcionario_id}_observacoes`] && (
+                                <div className="absolute -bottom-5 left-0 text-red-600 text-xs whitespace-nowrap">
+                                  {validationErrors[`${resultado.funcionario_id}_observacoes`]}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
+              </div>
+
+              {/* Legenda de campos obrigatórios */}
+              <div className="flex items-center gap-1 text-xs text-gray-600 mt-2">
+                <span className="text-red-500">*</span>
+                <span>Campos obrigatórios</span>
+              </div>
             </div>
           )}
 

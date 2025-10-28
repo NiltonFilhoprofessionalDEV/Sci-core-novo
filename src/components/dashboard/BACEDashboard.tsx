@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AtividadesAcessoriasModal } from '@/components/modals/AtividadesAcessoriasModal'
 import { TAFModal } from '@/components/modals/TAFModal'
+import { ModalControleAgentesExtintores } from '@/components/modals/ModalControleAgentesExtintores'
 
 
 interface IndicadorPendente {
@@ -63,6 +64,7 @@ export function BACEDashboard() {
   const [loading, setLoading] = useState(true)
   const [isAtividadesModalOpen, setIsAtividadesModalOpen] = useState(false)
   const [isTAFModalOpen, setIsTAFModalOpen] = useState(false)
+  const [isControleAgentesModalOpen, setIsControleAgentesModalOpen] = useState(false)
 
 
   const userInfo = getUserDisplayInfo()
@@ -442,6 +444,14 @@ export function BACEDashboard() {
                 TAF
               </Button>
 
+              <Button 
+                onClick={() => setIsControleAgentesModalOpen(true)}
+                className="w-full bg-[#fa4b00] hover:bg-[#e63d00] text-white justify-start"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Controle de Agentes Extintores
+              </Button>
+
               <Button className="w-full bg-gray-600 hover:bg-gray-700 text-white justify-start">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Meus Dados
@@ -499,6 +509,15 @@ export function BACEDashboard() {
         onClose={() => setIsTAFModalOpen(false)}
         onSuccess={() => {
           setIsTAFModalOpen(false)
+          // Aqui poderia recarregar dados se necessário
+        }}
+      />
+
+      <ModalControleAgentesExtintores 
+        isOpen={isControleAgentesModalOpen}
+        onClose={() => setIsControleAgentesModalOpen(false)}
+        onSuccess={() => {
+          setIsControleAgentesModalOpen(false)
           // Aqui poderia recarregar dados se necessário
         }}
       />

@@ -129,7 +129,7 @@ export function useAuth() {
 
   const signUp = async (email: string, password: string, userData: {
     nome_completo: string
-    perfil: 'gestor_pop' | 'gerente_secao' | 'ba_ce'
+    perfil: 'gestor_pop' | 'gerente_secao' | 'ba_ce' | 'chefe_equipe'
     secao_id?: string
     equipe_id?: string
   }) => {

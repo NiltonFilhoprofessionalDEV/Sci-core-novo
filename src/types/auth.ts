@@ -53,6 +53,7 @@ export interface AuthContextType {
   profile: UserProfile | null
   session: any
   loading: boolean
+  error: string | null
   rememberMe: boolean
   signIn: (email: string, password: string, remember?: boolean) => Promise<{ data: any; error: any }>
   signOut: () => Promise<{ error: any }>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { AlertTriangle, Calendar, Building2, Users, X, Save, Package, Beaker, Zap } from 'lucide-react'
 import { useControleAgentesExtintores, ControleFormData, FuncionarioControle } from '@/hooks/useControleAgentesExtintores'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
 
@@ -28,6 +29,11 @@ export function ModalControleAgentesExtintores({
     validarDados
   } = useControleAgentesExtintores()
 
+  // Obter dados do usuário logado
+  const { user } = useAuth()
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
+  const secaoId = user?.profile?.secao?.id
+
   // Estado do formulário
   const [formData, setFormData] = useState<ControleFormData>({
     base_id: '',
@@ -47,7 +53,7 @@ export function ModalControleAgentesExtintores({
     loading,
     saving,
     modalStep,
-    secoesCount: secoes.length,
+    secoesCount: 0,
     equipesCount: equipes.length,
     formData,
     funcionariosControleCount: formData.funcionarios.length
@@ -58,7 +64,7 @@ export function ModalControleAgentesExtintores({
     if (isOpen) {
       console.log('📂 Modal Controle Agentes Extintores aberto, resetando formulário...')
       setFormData({
-        base_id: '',
+        base_id: secaoId || '',
         equipe_id: '',
         data: '',
         funcionarios: []
@@ -70,7 +76,14 @@ export function ModalControleAgentesExtintores({
       // Carregar seções
       fetchSecoes()
     }
-  }, [isOpen, fetchSecoes])
+  }, [isOpen, fetchSecoes, secaoId])
+
+  // Preencher automaticamente a base do usuário logado
+  useEffect(() => {
+    if (isOpen && secaoId) {
+      setFormData(prev => ({ ...prev, base_id: secaoId }))
+    }
+  }, [isOpen, secaoId])
 
   // Buscar equipes quando seção mudar
   useEffect(() => {
@@ -174,8 +187,8 @@ export function ModalControleAgentesExtintores({
   const validateFirstStep = (): boolean => {
     const errors: Record<string, string> = {}
 
-    if (!formData.base_id) {
-      errors.base_id = 'Base é obrigatória'
+    if (!formData.base_id || !secaoId) {
+      errors.base_id = 'Usuário deve ter uma base associada'
     }
 
     if (!formData.equipe_id) {
@@ -312,23 +325,15 @@ export function ModalControleAgentesExtintores({
                     <Building2 className="w-4 h-4" />
                     Base *
                   </label>
-                  <select
-                    value={formData.base_id}
-                    onChange={(e) => updateField('base_id', e.target.value)}
-                    disabled={loading}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black ${
-                      validationErrors.base_id 
-                        ? 'border-red-300 bg-red-50' 
-                        : 'border-gray-300 hover:border-gray-400'
-                    } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <option value="" className="text-black">Selecione a base</option>
-                    {secoes.map((secao, index) => (
-                      <option key={`secao-${secao.id}-${index}`} value={secao.id} className="text-black">
-                        {secao.nome} - {secao.cidade}
-                      </option>
-                    ))}
-                  </select>
+                  {!secaoId ? (
+                    <div className="w-full px-3 py-2 border border-red-300 rounded-lg bg-red-50 text-red-700">
+                      Usuário sem base associada
+                    </div>
+                  ) : (
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                      {nomeBase}
+                    </div>
+                  )}
                   {validationErrors.base_id && (
                     <p className="text-red-600 text-sm mt-1">{validationErrors.base_id}</p>
                   )}
@@ -391,7 +396,7 @@ export function ModalControleAgentesExtintores({
               <div className="flex justify-end">
                 <button
                   onClick={handleNextStep}
-                  disabled={loading}
+                  disabled={loading || !formData.base_id || !formData.equipe_id || !formData.data || !secaoId}
                   className="px-8 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63946] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   Continuar
@@ -633,7 +638,7 @@ export function ModalControleAgentesExtintores({
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={loading || saving || formData.funcionarios.length === 0}
+                  disabled={loading || saving || formData.funcionarios.length === 0 || !secaoId}
                   className="px-8 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63946] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />

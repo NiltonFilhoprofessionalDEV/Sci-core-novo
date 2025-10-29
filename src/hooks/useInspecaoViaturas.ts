@@ -1,26 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-
-interface Base {
-  id: string;
-  nome: string;
-  cidade: string;
-}
 
 interface Equipe {
   id: string;
   nome: string;
   secao_id: string;
-}
-
-interface InspecaoViaturasFormData {
-  base_id: string;
-  data: string;
-  equipe_id: string;
-  quantidade_de_inspecoes: number;
-  quantidade_itens_nao_conforme: number;
-  observacoes: string;
 }
 
 interface InspecaoViaturasData {
@@ -38,30 +23,11 @@ interface InspecaoViaturasData {
 
 export const useInspecaoViaturas = () => {
   const { user } = useAuth();
-  const [bases, setBases] = useState<Base[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingEquipes, setLoadingEquipes] = useState(false);
 
-  // Buscar todas as bases disponíveis
-  const buscarBases = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('secoes')
-        .select('id, nome, cidade')
-        .order('nome');
 
-      if (error) throw error;
-
-      setBases(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar bases:', error);
-      setBases([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Buscar equipes por base
   const buscarEquipesPorBase = useCallback(async (baseId: string) => {
@@ -161,17 +127,10 @@ export const useInspecaoViaturas = () => {
     }
   };
 
-  // Carregar bases ao inicializar o hook
-  useEffect(() => {
-    buscarBases();
-  }, []);
-
   return {
-    bases,
     equipes,
     loading,
     loadingEquipes,
-    buscarBases,
     buscarEquipesPorBase,
     salvarInspecaoViaturas,
   };

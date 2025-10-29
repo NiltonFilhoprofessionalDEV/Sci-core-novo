@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { AlertTriangle, Clock, MapPin, Users, Calendar, Building2, X, Save, Timer } from 'lucide-react'
 import { useTempoEPR } from '@/hooks/useTempoEPR'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 
 interface ModalTempoEPRProps {
@@ -12,9 +13,12 @@ interface ModalTempoEPRProps {
 }
 
 export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempoEPRProps) {
+  const { user } = useAuth()
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
+  const secaoId = user?.profile?.secao?.id
+
   const {
     // Estados
-    bases,
     equipes,
     funcionarios,
     temposEPR,
@@ -31,6 +35,7 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
     setEquipeSelecionada,
 
     // Funções
+    buscarEquipesPorBase,
     calcularStatus,
     salvarTemposEPR,
     resetarFormulario,
@@ -68,7 +73,7 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
   const handleSave = async () => {
     try {
       setSaving(true)
-      const sucesso = await salvarTemposEPR()
+      const sucesso = await salvarTemposEPR(secaoId)
       
       if (sucesso) {
         setShowSuccess(true)
@@ -95,6 +100,14 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
       onClose()
     }
   }
+
+  // Definir base automaticamente quando o modal abrir
+  React.useEffect(() => {
+    if (isOpen && secaoId && !baseSelecionada) {
+      setBaseSelecionada(secaoId)
+      buscarEquipesPorBase(secaoId)
+    }
+  }, [isOpen, secaoId, baseSelecionada, setBaseSelecionada])
 
   // Obter data máxima (hoje)
   const getMaxDate = () => {
@@ -180,23 +193,13 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
                     <Building2 className="w-4 h-4" />
                     Base <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={baseSelecionada}
-                    onChange={(e) => setBaseSelecionada(e.target.value)}
-                    disabled={isLoading || saving}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent transition-colors text-black ${
-                      errors.base ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    } ${isLoading || saving ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <option value="">Selecione uma base</option>
-                    {bases.map((base, index) => (
-                      <option key={`base-${base.id}-${index}`} value={base.id}>
-                        {base.nome}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.base && (
-                    <p className="text-red-600 text-sm mt-1">{errors.base}</p>
+                  <div className={`w-full px-4 py-3 border rounded-lg bg-gray-50 text-gray-700 ${
+                    !secaoId ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-300'
+                  }`}>
+                    {secaoId ? nomeBase : 'Usuário deve ter uma base associada'}
+                  </div>
+                  {!secaoId && (
+                    <p className="text-red-600 text-sm mt-1">Usuário deve ter uma base associada</p>
                   )}
                 </div>
 
@@ -259,8 +262,12 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
               <div className="flex justify-end">
                 <button
                   onClick={prosseguirParaTabela}
-                  disabled={isLoading || saving || !baseSelecionada || !dataSelecionada || !equipeSelecionada}
-                  className="px-6 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63e00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  disabled={isLoading || saving || !baseSelecionada || !dataSelecionada || !equipeSelecionada || !secaoId}
+                  className={`px-6 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63e00] transition-colors flex items-center gap-2 ${
+                    isLoading || saving || !baseSelecionada || !dataSelecionada || !equipeSelecionada || !secaoId 
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : ''
+                  }`}
                 >
                   {isLoading ? (
                     <>
@@ -284,7 +291,7 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
                   <div>
                     <span className="font-medium text-gray-700">Base:</span>
                     <span className="ml-2 text-gray-900">
-                      {bases.find(b => b.id === baseSelecionada)?.nome}
+                      {nomeBase}
                     </span>
                   </div>
                   <div>
@@ -422,7 +429,7 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
                   </button>
                   <button
                     onClick={handleSave}
-                    disabled={isLoading || saving || funcionarios.length === 0}
+                    disabled={isLoading || saving || funcionarios.length === 0 || !secaoId}
                     className="px-6 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63e00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     {saving ? (

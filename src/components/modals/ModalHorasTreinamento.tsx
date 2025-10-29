@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { AlertTriangle, Clock, MapPin, Users, Calendar, Building2, X, Save, BookOpen } from 'lucide-react'
 import { useHorasTreinamento, HorasTreinamentoResultado, HorasTreinamentoRegistro } from '@/hooks/useHorasTreinamento'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
 
@@ -17,8 +18,11 @@ export function ModalHorasTreinamento({
   onClose, 
   onSuccess 
 }: ModalHorasTreinamentoProps) {
+  const { user } = useAuth()
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
+  const secaoId = user?.profile?.secao?.id
+
   const {
-    secoes,
     equipes,
     funcionarios,
     loading,
@@ -30,12 +34,48 @@ export function ModalHorasTreinamento({
     salvarHorasTreinamento
   } = useHorasTreinamento()
 
+  // Aplicar máscara de tempo HH:MM:SS
+  const applyTimeMask = (value: string): string => {
+    // Remove tudo que não é número
+    const numbers = value.replace(/\D/g, '')
+    
+    // Aplica a máscara HH:MM:SS
+    if (numbers.length <= 2) {
+      return numbers
+    } else if (numbers.length <= 4) {
+      return `${numbers.slice(0, 2)}:${numbers.slice(2)}`
+    } else {
+      return `${numbers.slice(0, 2)}:${numbers.slice(2, 4)}:${numbers.slice(4, 6)}`
+    }
+  }
+
+  // Converter HH:MM:SS para decimal (horas)
+  const convertTimeToDecimal = (timeString: string): number => {
+    if (!timeString || timeString === '') return 0
+    
+    const parts = timeString.split(':')
+    if (parts.length !== 3) return 0
+    
+    const hours = parseInt(parts[0]) || 0
+    const minutes = parseInt(parts[1]) || 0
+    const seconds = parseInt(parts[2]) || 0
+    
+    return hours + (minutes / 60) + (seconds / 3600)
+  }
+
+  // Validar formato de tempo HH:MM:SS
+  const validateTimeFormat = (time: string): boolean => {
+    if (!time) return false
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/
+    return timeRegex.test(time)
+  }
+
   // Estado do formulário
   const [formData, setFormData] = useState({
-    secao_id: '',
+    secao_id: secaoId || '',
     equipe_id: '',
     data_ptr_ba: '',
-    hora_ptr_diaria: 0.5
+    hora_ptr_diaria: '01:00:00' // Mudado para string no formato HH:MM:SS
   })
   const [resultados, setResultados] = useState<HorasTreinamentoResultado[]>([])
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
@@ -51,11 +91,11 @@ export function ModalHorasTreinamento({
     loading,
     saving,
     modalStep,
-    secoesCount: secoes.length,
-    equipesCount: equipes.length,
-    funcionariosCount: funcionarios.length,
+    secoesCount: 0,
+    equipesCount: equipes?.length || 0,
+    funcionariosCount: funcionarios?.length || 0,
     formData,
-    resultadosCount: resultados.length
+    resultadosCount: resultados?.length || 0
   })
 
   // Resetar formulário quando modal abre
@@ -63,10 +103,10 @@ export function ModalHorasTreinamento({
     if (isOpen) {
       console.log('📂 Modal Horas Treinamento aberto, resetando formulário...')
       setFormData({
-        secao_id: '',
+        secao_id: secaoId || '',
         equipe_id: '',
         data_ptr_ba: '',
-        hora_ptr_diaria: 0.5
+        hora_ptr_diaria: '01:00:00'
       })
       setResultados([])
       setValidationErrors({})
@@ -74,7 +114,17 @@ export function ModalHorasTreinamento({
       setModalStep('selection')
       // Removido: setIsSubmitting(false)
     }
-  }, [isOpen])
+  }, [isOpen, secaoId])
+
+  // Preencher automaticamente a base quando disponível
+  useEffect(() => {
+    if (isOpen && secaoId && formData.secao_id !== secaoId) {
+      setFormData(prev => ({
+        ...prev,
+        secao_id: secaoId
+      }))
+    }
+  }, [isOpen, secaoId, formData.secao_id])
 
   // Buscar equipes quando seção mudar
   useEffect(() => {
@@ -145,35 +195,34 @@ export function ModalHorasTreinamento({
       const novosResultados: HorasTreinamentoResultado[] = funcionarios.map(funcionario => ({
         funcionario_id: funcionario.id,
         nome: funcionario.nome_completo,
-        hora_ptr_diaria: formData.hora_ptr_diaria
+        hora_ptr_diaria: formData.hora_ptr_diaria // Manter formato HH:MM:SS
       }))
       setResultados(novosResultados)
     }
   }, [funcionarios, formData.hora_ptr_diaria])
 
-  // Atualizar campo do formulário
+  // Função para atualizar campos do formulário
   const updateField = (field: string, value: string | number) => {
-    // Se estamos na segunda etapa e mudando a equipe, verificar se há dados preenchidos
-    if (modalStep === 'details' && field === 'equipe_id' && value !== formData.equipe_id) {
-      const hasData = resultados.some(r => r.hora_ptr_diaria > 0)
-      if (hasData && value) {
-        setPendingEquipeId(value as string)
-        setShowEquipeChangeConfirm(true)
-        return
-      }
-    }
-
+    console.log(`📝 Atualizando campo ${field}:`, value)
+    
     setFormData(prev => ({ ...prev, [field]: value }))
     
+    // Se mudou a equipe, confirmar mudança
+    if (field === 'equipe_id' && resultados.length > 0) {
+      setPendingEquipeId(value as string)
+      setShowEquipeChangeConfirm(true)
+      return
+    }
+    
     // Se mudou a hora diária, atualizar todos os resultados
-    if (field === 'hora_ptr_diaria' && typeof value === 'number') {
+    if (field === 'hora_ptr_diaria') {
       setResultados(prev => prev.map(resultado => ({
         ...resultado,
-        hora_ptr_diaria: value
+        hora_ptr_diaria: value as string
       })))
     }
-
-    // Limpar erro de validação do campo
+    
+    // Limpar erro de validação se existir
     if (validationErrors[field]) {
       setValidationErrors(prev => {
         const newErrors = { ...prev }
@@ -205,10 +254,8 @@ export function ModalHorasTreinamento({
 
   // Manipular mudança de horas
   const handleHorasChange = (funcionarioId: string, value: string) => {
-    const horas = parseFloat(value)
-    if (!isNaN(horas) && horas >= 0) {
-      updateResultado(funcionarioId, 'hora_ptr_diaria', horas)
-    }
+    const maskedValue = applyTimeMask(value)
+    updateResultado(funcionarioId, 'hora_ptr_diaria', maskedValue)
   }
 
   // Prosseguir para segunda etapa
@@ -216,10 +263,12 @@ export function ModalHorasTreinamento({
     const errors: Record<string, string> = {}
 
     // Validar campos básicos
-    if (!formData.secao_id) errors.secao_id = 'Base é obrigatória'
+    if (!formData.secao_id || !secaoId) errors.secao_id = 'Usuário deve ter uma base associada'
     if (!formData.data_ptr_ba) errors.data_ptr_ba = 'Data é obrigatória'
     if (!formData.equipe_id) errors.equipe_id = 'Equipe é obrigatória'
-    if (formData.hora_ptr_diaria <= 0) errors.hora_ptr_diaria = 'Hora de treinamento deve ser maior que zero'
+    if (!formData.hora_ptr_diaria || !validateTimeFormat(formData.hora_ptr_diaria)) {
+      errors.hora_ptr_diaria = 'Formato de tempo inválido (HH:MM:SS)'
+    }
 
     // Validar data não futura
     if (formData.data_ptr_ba) {
@@ -228,11 +277,6 @@ export function ModalHorasTreinamento({
       if (dataProvaSelecionada > hoje) {
         errors.data_ptr_ba = 'A data não pode ser futura'
       }
-    }
-
-    // Validar horas
-    if (!validarHoras(formData.hora_ptr_diaria.toString())) {
-      errors.hora_ptr_diaria = 'Horas devem ser positivas com máximo 2 casas decimais'
     }
 
     // Verificar se há erros de validação ANTES de prosseguir
@@ -250,8 +294,8 @@ export function ModalHorasTreinamento({
     // Verificar duplicatas APENAS após todas as validações passarem
     try {
       // Garantir que os campos obrigatórios estão preenchidos antes da verificação
-      if (formData.data_ptr_ba && formData.equipe_id) {
-        const temDuplicatas = await verificarDuplicatas(formData.data_ptr_ba, formData.equipe_id)
+      if (formData.data_ptr_ba && formData.equipe_id && formData.secao_id) {
+        const temDuplicatas = await verificarDuplicatas(formData.secao_id, formData.equipe_id, formData.data_ptr_ba)
         if (temDuplicatas) {
           toast.error('Já existem registros de horas de treinamento para esta data e equipe')
           return
@@ -295,15 +339,16 @@ export function ModalHorasTreinamento({
       let hasValidData = false
       resultados.forEach(resultado => {
         const prefix = resultado.funcionario_id
+        const timeValue = resultado.hora_ptr_diaria as string
 
         // Verificar se tem horas válidas
-        if (resultado.hora_ptr_diaria > 0) {
+        if (validateTimeFormat(timeValue) && convertTimeToDecimal(timeValue) > 0) {
           hasValidData = true
         }
 
-        // Validar horas
-        if (!validarHoras(resultado.hora_ptr_diaria.toString())) {
-          errors[`${prefix}_hora_ptr_diaria`] = 'Horas devem ser positivas com máximo 2 casas decimais'
+        // Validar formato de tempo
+        if (timeValue && !validateTimeFormat(timeValue)) {
+          errors[`${prefix}_hora_ptr_diaria`] = 'Formato de tempo inválido (HH:MM:SS)'
         }
       })
 
@@ -325,8 +370,13 @@ export function ModalHorasTreinamento({
         secao_id: formData.secao_id,
         equipe_id: formData.equipe_id,
         data_ptr_ba: formData.data_ptr_ba,
-        hora_ptr_diaria: formData.hora_ptr_diaria,
-        resultados: resultados.filter(r => r.hora_ptr_diaria > 0)
+        hora_ptr_diaria: convertTimeToDecimal(formData.hora_ptr_diaria),
+        resultados: resultados
+          .filter(r => validateTimeFormat(r.hora_ptr_diaria as string) && convertTimeToDecimal(r.hora_ptr_diaria as string) > 0)
+          .map(r => ({
+            ...r,
+            hora_ptr_diaria: convertTimeToDecimal(r.hora_ptr_diaria as string)
+          }))
       }
 
       console.log('💾 Salvando dados:', dadosParaSalvar)
@@ -449,21 +499,9 @@ export function ModalHorasTreinamento({
                     <Building2 className="w-4 h-4" />
                     Base *
                   </label>
-                  <select
-                    value={formData.secao_id}
-                    onChange={(e) => updateField('secao_id', e.target.value)}
-                    disabled={loading}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent transition-colors text-black ${
-                      validationErrors.secao_id ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <option value="">Selecione a base</option>
-                    {secoes.map((secao, index) => (
-                      <option key={`secao-${secao.id}-${index}`} value={secao.id}>
-                        {secao.nome} - {secao.cidade}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-black">
+                    {secaoId ? nomeBase : 'Usuário deve ter uma base associada'}
+                  </div>
                   {validationErrors.secao_id && (
                     <p className="text-red-600 text-sm mt-1">{validationErrors.secao_id}</p>
                   )}
@@ -525,17 +563,14 @@ export function ModalHorasTreinamento({
                     Hora de treinamento diário *
                   </label>
                   <input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    max="24"
+                    type="text"
                     value={formData.hora_ptr_diaria}
-                    onChange={(e) => updateField('hora_ptr_diaria', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => updateField('hora_ptr_diaria', applyTimeMask(e.target.value))}
                     disabled={loading}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent transition-colors text-black ${
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent transition-colors text-black font-mono ${
                       validationErrors.hora_ptr_diaria ? 'border-red-300 bg-red-50' : 'border-gray-300'
                     } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    placeholder="Ex: 2.5"
+                    placeholder="HH:MM:SS"
                   />
                   {validationErrors.hora_ptr_diaria && (
                     <p className="text-red-600 text-sm mt-1">{validationErrors.hora_ptr_diaria}</p>
@@ -547,7 +582,7 @@ export function ModalHorasTreinamento({
               <div className="flex justify-end pt-6">
                 <button
                   onClick={handleProceedToDetails}
-                  disabled={loading || !formData.secao_id || !formData.equipe_id || !formData.data_ptr_ba}
+                  disabled={loading || !formData.secao_id || !formData.equipe_id || !formData.data_ptr_ba || !secaoId}
                   className="px-8 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63946] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   {loading ? 'Carregando...' : 'Prosseguir'}
@@ -565,7 +600,7 @@ export function ModalHorasTreinamento({
                   <div>
                     <span className="font-medium text-gray-600">Base:</span>
                     <p className="text-black">
-                      {secoes.find(s => s.id === formData.secao_id)?.nome} - {secoes.find(s => s.id === formData.secao_id)?.cidade}
+                      {nomeBase}
                     </p>
                   </div>
                   <div>
@@ -582,7 +617,7 @@ export function ModalHorasTreinamento({
                   </div>
                   <div>
                     <span className="font-medium text-gray-600">Horas padrão:</span>
-                    <p className="text-black">{formData.hora_ptr_diaria}h</p>
+                    <p className="text-black">{formData.hora_ptr_diaria}</p>
                   </div>
                 </div>
               </div>
@@ -627,20 +662,17 @@ export function ModalHorasTreinamento({
                             <td className="py-2 px-3">
                               <div className="relative">
                                 <input
-                                  type="number"
-                                  step="0.5"
-                                  min="0"
-                                  max="24"
+                                  type="text"
                                   value={resultado.hora_ptr_diaria}
                                   onChange={(e) => handleHorasChange(resultado.funcionario_id, e.target.value)}
                                   onKeyDown={handleKeyDown}
-                                  disabled={loading || saving || isSubmitting}
-                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-gray-500 ${
+                                  disabled={loading || saving}
+                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-gray-500 font-mono ${
                                     validationErrors[`${resultado.funcionario_id}_hora_ptr_diaria`] 
                                       ? 'border-red-300 bg-red-50' 
                                       : 'border-gray-300 hover:border-gray-400'
-                                  } ${loading || saving || isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                  placeholder="0.0"
+                                  } ${loading || saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  placeholder="HH:MM:SS"
                                 />
                                 {validationErrors[`${resultado.funcionario_id}_hora_ptr_diaria`] && (
                                   <div className="absolute -bottom-5 left-0 text-red-600 text-xs whitespace-nowrap">
@@ -661,7 +693,7 @@ export function ModalHorasTreinamento({
               <div className="flex justify-between pt-6">
                 <button
                   onClick={handleBackToSelection}
-                  disabled={isSubmitting}
+                  disabled={saving}
                   className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Voltar
@@ -670,7 +702,7 @@ export function ModalHorasTreinamento({
                 <button
                   type="button"
                   onClick={(e) => handleSubmit(e)}
-                  disabled={saving || resultados.every(r => r.hora_ptr_diaria <= 0)}
+                  disabled={saving || resultados.every(r => r.hora_ptr_diaria <= 0) || !secaoId}
                   className="px-8 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63946] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />

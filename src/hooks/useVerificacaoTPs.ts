@@ -1,12 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase, withRetry, checkConnection } from '@/lib/supabase';
 import { toast } from 'sonner';
-
-export interface Secao {
-  id: string;
-  nome: string;
-  cidade: string;
-}
 
 export interface Equipe {
   id: string;
@@ -15,91 +9,21 @@ export interface Equipe {
   nome_cidade: string;
 }
 
-export interface VerificacaoTPsFormData {
-  secao_id: string;
-  data: string;
-  equipe: string;
-  tp_conforme: number;
-  tp_verificado: number;
-  tp_total: number;
-}
-
 export interface VerificacaoTPsRegistro {
-  id?: string;
   secao_id: string;
-  data: string;
   equipe: string;
+  data: string;
   tp_conforme: number;
   tp_verificado: number;
   tp_total: number;
-  nome_cidade?: string;
-  nome_usuario?: string;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export function useVerificacaoTPs() {
-  const [secoes, setSecoes] = useState<Secao[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Buscar seções
-  const fetchSecoes = useCallback(async () => {
-    try {
-      setLoading(true);
-      console.log('🏢 Buscando seções para verificação de TPs...');
-      
-      // Verificar conectividade antes de fazer a requisição
-      const isConnected = await checkConnection();
-      if (!isConnected) {
-        throw new Error('Sem conexão com o servidor. Verifique sua conexão com a internet.');
-      }
 
-      // Usar retry logic para a requisição
-      const { data, error } = await withRetry(async () => {
-        return await supabase
-          .from('secoes')
-          .select('id, nome, cidade')
-          .eq('ativa', true)
-          .order('nome');
-      }, 3, 1000);
-
-      if (error) {
-        console.error('❌ Erro ao buscar seções:', error);
-        
-        // Mensagens de erro mais específicas
-        if (error.message.includes('Failed to fetch')) {
-          toast.error('Erro de conexão. Verifique sua internet e tente novamente.');
-        } else if (error.message.includes('timeout')) {
-          toast.error('Tempo limite excedido. Tente novamente.');
-        } else {
-          toast.error('Erro ao carregar seções');
-        }
-        return;
-      }
-
-      console.log('✅ Seções carregadas:', data?.length || 0);
-      setSecoes(data || []);
-    } catch (error) {
-      console.error('❌ Erro inesperado ao buscar seções:', error);
-      
-      // Tratamento de erro mais específico
-      if (error instanceof Error) {
-        if (error.message.includes('Sem conexão')) {
-          toast.error(error.message);
-        } else if (error.message.includes('Failed to fetch') || error.message.includes('ERR_')) {
-          toast.error('Problema de conexão. Verifique sua internet e tente novamente.');
-        } else {
-          toast.error('Erro inesperado ao carregar seções');
-        }
-      } else {
-        toast.error('Erro inesperado ao carregar seções');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   // Buscar equipes por seção
   const fetchEquipesPorSecao = useCallback(async (secaoId: string) => {
@@ -334,20 +258,13 @@ export function useVerificacaoTPs() {
     }
   };
 
-  // Carregar seções na inicialização
-  useEffect(() => {
-    fetchSecoes();
-  }, [fetchSecoes]);
-
   return {
     // Estados
-    secoes,
     equipes,
     loading,
     saving,
     
     // Funções
-    fetchSecoes,
     fetchEquipesPorSecao,
     validarData,
     validarTPs,

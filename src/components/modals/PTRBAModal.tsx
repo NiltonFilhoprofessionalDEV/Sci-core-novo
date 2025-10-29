@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { AlertTriangle, Clock, MapPin, Users, Calendar, Building2, FileText, X, Save, BookOpen, GraduationCap } from 'lucide-react'
 import { usePTRBA, PTRBAResultado, PTRBARegistro } from '@/hooks/usePTRBA'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 
 interface PTRBAModalProps {
@@ -28,6 +29,11 @@ export function PTRBAModal({
     validarNota,
     salvarPTRBA
   } = usePTRBA()
+
+  // Obter dados do usuário logado
+  const { user } = useAuth()
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
+  const secaoId = user?.profile?.secao?.id
 
   // Estado do formulário
   const [formData, setFormData] = useState({
@@ -56,7 +62,7 @@ export function PTRBAModal({
     loading,
     saving,
     modalStep,
-    secoesCount: secoes.length,
+    secoesCount: 0,
     equipesCount: equipes.length,
     funcionariosCount: funcionarios.length,
     formData,
@@ -68,7 +74,7 @@ export function PTRBAModal({
     if (isOpen) {
       console.log('📂 PTR-BA Modal aberto, resetando formulário...')
       setFormData({
-        secao_id: '',
+        secao_id: secaoId || '',
         equipe_id: '',
         data_prova: ''
       })
@@ -77,7 +83,14 @@ export function PTRBAModal({
       setShowSuccess(false)
       setModalStep('selection')
     }
-  }, [isOpen])
+  }, [isOpen, secaoId])
+
+  // Preencher automaticamente a base do usuário logado
+  useEffect(() => {
+    if (isOpen && secaoId) {
+      setFormData(prev => ({ ...prev, secao_id: secaoId }))
+    }
+  }, [isOpen, secaoId])
 
   // Buscar equipes quando seção mudar
   useEffect(() => {
@@ -189,7 +202,7 @@ export function PTRBAModal({
     const errors: Record<string, string> = {}
 
     // Validar campos básicos
-    if (!formData.secao_id) errors.secao_id = 'Base é obrigatória'
+    if (!formData.secao_id || !secaoId) errors.secao_id = 'Usuário deve ter uma base associada'
     if (!formData.data_prova) errors.data_prova = 'Data é obrigatória'
     if (!formData.equipe_id) errors.equipe_id = 'Equipe é obrigatória'
 
@@ -361,23 +374,11 @@ export function PTRBAModal({
                     <Building2 className="w-4 h-4" />
                     Base *
                   </label>
-                  <select
-                    value={formData.secao_id}
-                    onChange={(e) => updateField('secao_id', e.target.value)}
-                    disabled={loading}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent transition-colors text-black ${
-                      validationErrors.secao_id ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <option value="">Selecione a base</option>
-                    {secoes.map((secao, index) => (
-                      <option key={`secao-${secao.id}-${index}`} value={secao.id}>
-                        {secao.nome} - {secao.cidade}
-                      </option>
-                    ))}
-                  </select>
-                  {validationErrors.secao_id && (
-                    <p className="text-red-600 text-sm mt-1">{validationErrors.secao_id}</p>
+                  <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-black">
+                    {secaoId ? nomeBase : 'Usuário deve ter uma base associada'}
+                  </div>
+                  {!secaoId && (
+                    <p className="text-red-600 text-sm mt-1">Usuário deve ter uma base associada</p>
                   )}
                 </div>
 
@@ -433,7 +434,7 @@ export function PTRBAModal({
               <div className="flex justify-end pt-4">
                 <button
                   onClick={handleProceedToDetails}
-                  disabled={loading}
+                  disabled={loading || !secaoId}
                   className="px-6 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63e00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   {loading ? 'Carregando...' : 'Prosseguir'}
@@ -449,27 +450,17 @@ export function PTRBAModal({
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="font-semibold text-black mb-4">Editar Informações da Prova</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Base editável */}
+                  {/* Base readonly */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-black mb-2">
                       <MapPin className="w-4 h-4" />
                       Base *
                     </label>
-                    <select
-                      value={formData.secao_id}
-                      onChange={(e) => updateField('secao_id', e.target.value)}
-                      disabled={loading || saving}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent transition-colors text-black text-sm ${
-                        validationErrors.secao_id ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                      } ${loading || saving ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <option value="">Selecione a base</option>
-                      {secoes.map((secao, index) => (
-                        <option key={`secao-${secao.id}-${index}`} value={secao.id}>
-                          {secao.nome} - {secao.cidade}
-                        </option>
-                      ))}
-                    </select>
+                    <div className={`w-full px-3 py-2 border rounded-lg bg-gray-50 text-black text-sm ${
+                      !secaoId ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-300'
+                    }`}>
+                      {secaoId ? nomeBase : 'Usuário sem base associada'}
+                    </div>
                     {validationErrors.secao_id && (
                       <p className="text-red-600 text-xs mt-1">{validationErrors.secao_id}</p>
                     )}
@@ -660,7 +651,7 @@ export function PTRBAModal({
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={saving}
+                  disabled={saving || !secaoId}
                   className="px-6 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63e00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
                 >
                   {saving ? (

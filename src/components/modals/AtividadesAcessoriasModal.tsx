@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { AlertTriangle, Clock, MapPin, Users, Calendar, Building2, FileText, X, Save, Activity } from 'lucide-react'
 import { useAtividadesAcessorias, AtividadeAcessoria } from '@/hooks/useAtividadesAcessorias'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 
 interface AtividadesAcessoriasModalProps {
@@ -19,16 +20,19 @@ export function AtividadesAcessoriasModal({
   const {
     loading,
     error,
-    bases,
     equipes,
     tiposAtividade,
-    fetchBases,
     fetchEquipesByBase,
     applyTimeMask,
     validateForm,
     saveAtividade,
     setError
   } = useAtividadesAcessorias()
+
+  // Obter dados do usuário logado
+  const { user } = useAuth()
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
+  const secaoId = user?.profile?.secao?.id
 
   // Estado do formulário
   const [formData, setFormData] = useState<AtividadeAcessoria>({
@@ -50,20 +54,18 @@ export function AtividadesAcessoriasModal({
     isOpen,
     loading,
     error,
-    basesCount: bases.length,
-    equipesCount: equipes.length,
-    tiposAtividadeCount: tiposAtividade.length,
+    equipesCount: equipes?.length || 0,
+    tiposAtividadeCount: tiposAtividade?.length || 0,
     formData
   })
 
-  // Carregar bases quando modal abre
+  // Resetar formulário quando modal abre
   useEffect(() => {
     if (isOpen) {
-      console.log('📂 Modal aberto, carregando bases...')
-      fetchBases()
+      console.log('📂 Modal aberto, resetando formulário...')
       // Resetar formulário
       setFormData({
-        base_id: '',
+        base_id: secaoId || '',
         data_atividade: '',
         equipe_id: '',
         tipo_atividade: 'Inspeção de extintores',
@@ -75,7 +77,14 @@ export function AtividadesAcessoriasModal({
       setError(null)
       setShowSuccess(false)
     }
-  }, [isOpen, fetchBases, setError])
+  }, [isOpen, setError, secaoId])
+
+  // Preencher automaticamente a base do usuário logado
+  useEffect(() => {
+    if (isOpen && secaoId) {
+      setFormData(prev => ({ ...prev, base_id: secaoId }))
+    }
+  }, [isOpen, secaoId])
 
   // Buscar equipes quando base mudar
   useEffect(() => {
@@ -108,6 +117,12 @@ export function AtividadesAcessoriasModal({
 
   // Salvar atividade
   const handleSave = async () => {
+    // Verificar se o usuário tem uma base associada
+    if (!secaoId) {
+      setValidationErrors({ base_id: 'Usuário deve ter uma base associada' })
+      return
+    }
+
     // Validar formulário
     const validation = validateForm(formData)
     
@@ -208,23 +223,11 @@ export function AtividadesAcessoriasModal({
                 <Building2 className="w-4 h-4" />
                 Base *
               </label>
-              <select
-                value={formData.base_id}
-                onChange={(e) => updateField('base_id', e.target.value)}
-                disabled={loading}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent transition-colors text-gray-900 ${
-                  validationErrors.base_id ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <option value="">Selecione uma base</option>
-                {bases.map((base, index) => (
-                  <option key={`base-${base.id}-${index}`} value={base.id}>
-                    {base.nome} - {base.cidade}
-                  </option>
-                ))}
-              </select>
-              {validationErrors.base_id && (
-                <p className="text-red-500 text-sm mt-1">{validationErrors.base_id}</p>
+              <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                {secaoId ? nomeBase : 'Usuário deve ter uma base associada'}
+              </div>
+              {!secaoId && (
+                <p className="text-red-500 text-sm mt-1">Usuário deve ter uma base associada</p>
               )}
             </div>
 
@@ -380,7 +383,7 @@ export function AtividadesAcessoriasModal({
             </button>
             <button
               onClick={handleSave}
-              disabled={loading}
+              disabled={loading || !secaoId}
               className="flex items-center justify-center gap-2 px-8 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63d00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
             >
               {loading ? (

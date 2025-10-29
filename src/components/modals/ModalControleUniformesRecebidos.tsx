@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Package, Calendar, Users, ShirtIcon, Shield, FileText, Save, AlertCircle } from 'lucide-react';
 import { useControleUniformesRecebidos, ControleUniformesFormData } from '@/hooks/useControleUniformesRecebidos';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ModalControleUniformesRecebidosProps {
   isOpen: boolean;
@@ -34,6 +35,11 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
     limparTabelaFuncionarios,
   } = useControleUniformesRecebidos();
 
+  // Dados do usuário logado
+  const { user } = useAuth();
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada';
+  const secaoId = user?.profile?.secao?.id;
+
   const [formData, setFormData] = useState<ControleUniformesFormData>({
     nome_cidade: '',
     equipe: '',
@@ -55,7 +61,7 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        nome_cidade: '',
+        nome_cidade: secaoId || '',
         equipe: '',
         data: '',
         observacoes: '',
@@ -64,7 +70,17 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
       setDuplicataWarning(false);
       limparErros();
     }
-  }, [isOpen]);
+  }, [isOpen, secaoId]);
+
+  // Definir automaticamente a nome_cidade quando o modal abrir
+  useEffect(() => {
+    if (isOpen && secaoId && !formData.nome_cidade) {
+      setFormData(prev => ({
+        ...prev,
+        nome_cidade: secaoId
+      }));
+    }
+  }, [isOpen, secaoId, formData.nome_cidade]);
 
   // Verificar duplicatas quando dados relevantes mudarem
   useEffect(() => {
@@ -82,13 +98,34 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
 
   // Carregar equipes quando base for selecionada
   useEffect(() => {
-    if (formData.nome_cidade && bases.length > 0) {
-      const baseSelecionada = bases.find(base => base.nome === formData.nome_cidade);
+    console.log('🔍 Verificando carregamento de equipes:', {
+      nome_cidade: formData.nome_cidade,
+      bases: bases?.length,
+      secaoId
+    });
+    
+    if (formData.nome_cidade && bases && bases.length > 0) {
+      // Se nome_cidade é um ID (secaoId), buscar diretamente por ID
+      let baseSelecionada;
+      
+      if (formData.nome_cidade === secaoId) {
+        // Buscar por ID
+        baseSelecionada = bases.find(base => base.id === formData.nome_cidade);
+        console.log('🎯 Buscando base por ID:', formData.nome_cidade, 'Encontrada:', baseSelecionada);
+      } else {
+        // Buscar por nome (caso seja um nome)
+        baseSelecionada = bases.find(base => base.nome === formData.nome_cidade);
+        console.log('🎯 Buscando base por nome:', formData.nome_cidade, 'Encontrada:', baseSelecionada);
+      }
+      
       if (baseSelecionada) {
+        console.log('✅ Base encontrada, carregando equipes para:', baseSelecionada.id);
         fetchEquipesByBase(baseSelecionada.id);
+      } else {
+        console.log('❌ Base não encontrada. Bases disponíveis:', bases.map(b => ({ id: b.id, nome: b.nome })));
       }
     }
-  }, [formData.nome_cidade, bases.length]);
+  }, [formData.nome_cidade, bases, secaoId, fetchEquipesByBase]);
 
   // Carregar funcionários quando equipe for selecionada
   useEffect(() => {
@@ -219,27 +256,17 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Primeira linha: Base e Data */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Base */}
+            {/* Base do Usuário */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Package className="w-4 h-4 inline mr-2" />
                 Base *
               </label>
-              <select
-                value={formData.nome_cidade}
-                onChange={(e) => handleInputChange('nome_cidade', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 ${
-                  validationErrors.nome_cidade ? 'border-red-500' : 'border-gray-300'
-                }`}
-                required
-              >
-                <option value="">Selecione a base</option>
-                {bases.map((base) => (
-                  <option key={base.id} value={base.nome}>
-                    {base.nome}
-                  </option>
-                ))}
-              </select>
+              <div className={`w-full px-3 py-2 border rounded-lg text-gray-900 ${
+                validationErrors.nome_cidade ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-gray-50'
+              }`}>
+                {secaoId ? nomeBase : 'Usuário deve ter uma base associada'}
+              </div>
               {validationErrors.nome_cidade && (
                 <p className="mt-1 text-sm text-red-600">{validationErrors.nome_cidade}</p>
               )}
@@ -471,7 +498,7 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
             </button>
             <button
               type="submit"
-              disabled={loading || Object.keys(validationErrors).length > 0}
+              disabled={loading || Object.keys(validationErrors).length > 0 || !secaoId}
               className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               {loading ? (

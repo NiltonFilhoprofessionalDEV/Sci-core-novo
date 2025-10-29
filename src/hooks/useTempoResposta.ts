@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 
@@ -39,41 +39,13 @@ export interface Equipe {
   secao_id: string;
 }
 
-export interface Secao {
-  id: string;
-  nome: string;
-  cidade: string;
-  codigo: string;
-  estado: string;
-}
-
 export const useTempoResposta = () => {
   const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [secoes, setSecoes] = useState<Secao[]>([]);
+  const [secoes, setSecoes] = useState<any[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
-
-  // Buscar seções disponíveis
-  const fetchSecoes = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('secoes')
-        .select('id, nome, cidade, codigo, estado')
-        .eq('ativa', true)
-        .order('cidade');
-
-      if (error) throw error;
-      setSecoes(data || []);
-    } catch (err) {
-      console.error('Erro ao buscar seções:', err);
-      setError('Erro ao carregar seções');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Buscar equipes por seção
   const fetchEquipesBySecao = useCallback(async (secaoId: string) => {
@@ -119,132 +91,106 @@ export const useTempoResposta = () => {
     }
   }, []);
 
-  // Buscar seção por nome da cidade
-  const getSecaoByNomeCidade = async (nomeCidade: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('secoes')
-        .select('id, nome, cidade')
-        .eq('cidade', nomeCidade)
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (err) {
-      console.error('Erro ao buscar seção por cidade:', err);
-      return null;
-    }
-  };
-
-  // Salvar tempos de resposta
-  const saveTempoResposta = async (
-    nomeCidade: string,
-    equipeNome: string,
-    equipeId: string,
-    dataTempoResposta: string,
-    viaturas: ViaturaTempo[]
-  ) => {
-    if (!user || !profile) {
-      throw new Error('Usuário não autenticado');
-    }
-
+  // Salvar dados de tempo de resposta
+  const saveTempoResposta = useCallback(async (data: TempoRespostaData[]): Promise<boolean> => {
     try {
       setLoading(true);
       setError(null);
 
-      // Buscar seção baseada na cidade
-      const secao = await getSecaoByNomeCidade(nomeCidade);
-      if (!secao) {
-        throw new Error('Seção não encontrada para a cidade selecionada');
+      if (!user?.id) {
+        setError('Usuário não autenticado');
+        return false;
       }
 
-      // Verificar duplicatas
-      const { data: existingData, error: checkError } = await supabase
-        .from('tempo_resposta')
-        .select('id')
-        .eq('secao_id', secao.id)
-        .eq('equipe_id', equipeId)
-        .eq('data_tempo_resposta', dataTempoResposta);
-
-      if (checkError) throw checkError;
-
-      if (existingData && existingData.length > 0) {
-        throw new Error('Já existe registro de tempo de resposta para esta equipe nesta data');
-      }
-
-      // Preparar dados para inserção
-      const tempoRespostaData: Omit<TempoRespostaData, 'id'>[] = viaturas.map(viatura => ({
-        nome_cidade: nomeCidade,
-        equipe: equipeNome,
-        data_tempo_resposta: dataTempoResposta,
-        nome_completo: viatura.nome_completo,
-        local_posicionamento: viatura.local_posicionamento,
-        cci_utilizado: viatura.cci_utilizado,
-        tempo_exercicio: viatura.tempo_exercicio,
-        observacoes: viatura.observacoes || null,
-        secao_id: secao.id,
-        equipe_id: equipeId,
+      // Adicionar usuario_id aos dados
+      const dataWithUserId = data.map(item => ({
+        ...item,
         usuario_id: user.id
       }));
 
-      // Inserir dados
-      const { error: insertError } = await supabase
+      const { error } = await supabase
         .from('tempo_resposta')
-        .insert(tempoRespostaData);
+        .insert(dataWithUserId);
 
-      if (insertError) throw insertError;
+      if (error) {
+        console.error('Erro ao salvar tempo de resposta:', error);
+        setError('Erro ao salvar dados');
+        return false;
+      }
 
-      return { success: true };
-    } catch (err: any) {
-      console.error('Erro ao salvar tempo de resposta:', err);
-      const errorMessage = err.message || 'Erro ao salvar tempo de resposta';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      return true;
+    } catch (err) {
+      console.error('Erro inesperado:', err);
+      setError('Erro inesperado ao salvar dados');
+      return false;
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  // Buscar registros de tempo de resposta
-  const fetchTempoResposta = async () => {
-    if (!profile?.secao_id) return [];
-
+  // Buscar dados de tempo de resposta
+  const fetchTempoResposta = useCallback(async (filters?: {
+    secaoId?: string;
+    equipeId?: string;
+    dataInicio?: string;
+    dataFim?: string;
+  }) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('tempo_resposta')
-        .select(`
-          *,
-          equipes:equipe_id(nome, nome_cidade),
-          secoes:secao_id(nome, nome_cidade)
-        `)
-        .eq('secao_id', profile.secao_id)
-        .order('created_at', { ascending: false });
+      setError(null);
 
-      if (error) throw error;
+      let query = supabase
+        .from('tempo_resposta')
+        .select('*')
+        .order('data_tempo_resposta', { ascending: false });
+
+      if (filters?.secaoId) {
+        query = query.eq('secao_id', filters.secaoId);
+      }
+
+      if (filters?.equipeId) {
+        query = query.eq('equipe_id', filters.equipeId);
+      }
+
+      if (filters?.dataInicio) {
+        query = query.gte('data_tempo_resposta', filters.dataInicio);
+      }
+
+      if (filters?.dataFim) {
+        query = query.lte('data_tempo_resposta', filters.dataFim);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Erro ao buscar tempo de resposta:', error);
+        setError('Erro ao carregar dados');
+        return [];
+      }
+
       return data || [];
     } catch (err) {
-      console.error('Erro ao buscar tempo de resposta:', err);
-      setError('Erro ao carregar registros');
+      console.error('Erro inesperado:', err);
+      setError('Erro inesperado ao carregar dados');
       return [];
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Validar formato de tempo HH:MM:SS
+  // Validar formato de tempo (HH:MM:SS)
   const validateTimeFormat = (time: string): boolean => {
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/;
     return timeRegex.test(time);
   };
 
   // Formatar tempo para HH:MM:SS
-  const formatTime = (time: string): string => {
-    // Remove caracteres não numéricos
-    const numbers = time.replace(/\D/g, '');
+  const formatTime = (input: string): string => {
+    // Remove todos os caracteres não numéricos
+    const numbers = input.replace(/\D/g, '');
     
     if (numbers.length <= 2) {
-      return numbers.padStart(2, '0') + ':00:00';
+      return numbers;
     } else if (numbers.length <= 4) {
       const hours = numbers.slice(0, 2);
       const minutes = numbers.slice(2, 4).padStart(2, '0');
@@ -257,17 +203,12 @@ export const useTempoResposta = () => {
     }
   };
 
-  useEffect(() => {
-    fetchSecoes();
-  }, []);
-
   return {
     loading,
     error,
     secoes,
     equipes,
     funcionarios,
-    fetchSecoes,
     fetchEquipesBySecao,
     fetchFuncionariosByEquipe,
     saveTempoResposta,

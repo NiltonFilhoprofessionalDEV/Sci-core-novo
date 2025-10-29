@@ -237,12 +237,40 @@ export const useControleUniformesRecebidos = () => {
     setError(null);
 
     try {
-      // Buscar IDs da seção e equipe
-      const baseSelecionada = bases.find(base => base.nome === dados.nome_cidade);
+      // Debug logs para investigar os valores
+      console.log('🔍 Debug salvarRegistro:');
+      console.log('dados.nome_cidade:', dados.nome_cidade);
+      console.log('dados.equipe:', dados.equipe);
+      console.log('bases disponíveis:', bases.map(b => ({ id: b.id, nome: b.nome })));
+      console.log('equipes disponíveis:', equipes.map(e => ({ id: e.id, nome: e.nome })));
+
+      // Validar se os arrays estão populados
+      if (!bases || bases.length === 0) {
+        throw new Error('Nenhuma base disponível. Verifique se as bases foram carregadas.');
+      }
+
+      if (!equipes || equipes.length === 0) {
+        throw new Error('Nenhuma equipe disponível. Verifique se as equipes foram carregadas.');
+      }
+
+      // Buscar base - pode ser por ID ou por nome
+      let baseSelecionada = bases.find(base => base.id === dados.nome_cidade);
+      if (!baseSelecionada) {
+        baseSelecionada = bases.find(base => base.nome === dados.nome_cidade);
+      }
+
+      // Buscar equipe por nome
       const equipeSelecionada = equipes.find(equipe => equipe.nome === dados.equipe);
 
-      if (!baseSelecionada || !equipeSelecionada) {
-        throw new Error('Base ou equipe não encontrada');
+      console.log('baseSelecionada encontrada:', baseSelecionada);
+      console.log('equipeSelecionada encontrada:', equipeSelecionada);
+
+      if (!baseSelecionada) {
+        throw new Error(`Base não encontrada. Valor procurado: "${dados.nome_cidade}". Bases disponíveis: ${bases.map(b => b.nome).join(', ')}`);
+      }
+
+      if (!equipeSelecionada) {
+        throw new Error(`Equipe não encontrada. Valor procurado: "${dados.equipe}". Equipes disponíveis: ${equipes.map(e => e.nome).join(', ')}`);
       }
 
       // Criar um registro para cada funcionário da equipe

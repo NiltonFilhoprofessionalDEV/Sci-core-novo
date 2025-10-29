@@ -1,19 +1,19 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-
-interface Secao {
-  id: string
-  nome: string
-  nome_cidade?: string
-  cidade?: string
-}
+import { toast } from 'sonner'
 
 interface Equipe {
   id: string
   nome: string
   secao_id: string
   nome_cidade?: string
+}
+
+interface Secao {
+  id: string
+  nome: string
+  cidade: string
 }
 
 interface ControleTrocasData {
@@ -30,40 +30,28 @@ interface ControleTrocasData {
 export const useControleTrocas = () => {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
-  const [secoes, setSecoes] = useState<Secao[]>([])
   const [equipes, setEquipes] = useState<Equipe[]>([])
+  const [secoes, setSecoes] = useState<Secao[]>([])
   const [loadingEquipes, setLoadingEquipes] = useState(false)
 
-  // Buscar todas as seções/bases disponíveis
+  // Buscar seções disponíveis
   const fetchSecoes = useCallback(async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const { data, error } = await supabase
         .from('secoes')
         .select('id, nome, cidade')
-        .eq('ativa', true)
-        .order('nome')
+        .order('nome');
 
-      if (error) {
-        console.error('Erro ao buscar seções:', error)
-        throw error
-      }
-
-      // Mapear para incluir nome_cidade baseado na cidade
-      const secoesFormatadas = data?.map(secao => ({
-        ...secao,
-        nome_cidade: secao.cidade
-      })) || []
-
-      setSecoes(secoesFormatadas)
-      return secoesFormatadas
+      if (error) throw error;
+      setSecoes(data || []);
     } catch (error) {
-      console.error('Erro ao buscar seções:', error)
-      throw error
+      console.error('Erro ao buscar seções:', error);
+      toast.error('Erro ao carregar bases');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   // Buscar equipes por seção
   const fetchEquipesBySecao = useCallback(async (secaoId: string) => {
@@ -171,8 +159,8 @@ export const useControleTrocas = () => {
     // Estados
     loading,
     loadingEquipes,
-    secoes,
     equipes,
+    secoes,
     
     // Funções
     fetchSecoes,

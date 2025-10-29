@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { AlertTriangle, CheckCircle, MapPin, Users, Calendar, Building2, X, Save, Hash, Droplets } from 'lucide-react'
 import { useHigienizacaoTPS, HigienizacaoTPSFormData } from '@/hooks/useHigienizacaoTPS'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
 
@@ -17,6 +18,10 @@ export function ModalHigienizacaoTPS({
   onClose, 
   onSuccess 
 }: ModalHigienizacaoTPSProps) {
+  const { user } = useAuth()
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
+  const secaoId = user?.profile?.secao?.id
+
   const {
     secoes,
     equipes,
@@ -36,7 +41,7 @@ export function ModalHigienizacaoTPS({
 
   // Estado do formulário
   const [formData, setFormData] = useState<HigienizacaoTPSFormData>({
-    secao_id: '',
+    secao_id: secaoId || '',
     data: '',
     equipe: '',
     tp_higienizado: 0,
@@ -51,7 +56,7 @@ export function ModalHigienizacaoTPS({
     isOpen,
     loading,
     saving,
-    secoesCount: secoes.length,
+    secoesCount: 0,
     equipesCount: equipes.length,
     formData
   })
@@ -91,7 +96,7 @@ export function ModalHigienizacaoTPS({
     if (isOpen) {
       console.log('📂 Modal Higienização TPS aberto, resetando formulário...')
       setFormData({
-        secao_id: '',
+        secao_id: secaoId || '',
         data: '',
         equipe: '',
         tp_higienizado: 0,
@@ -100,7 +105,14 @@ export function ModalHigienizacaoTPS({
       setValidationErrors({})
       setShowSuccess(false)
     }
-  }, [isOpen])
+  }, [isOpen, secaoId])
+
+  // Atualizar secao_id quando disponível
+  useEffect(() => {
+    if (isOpen && secaoId && formData.secao_id !== secaoId) {
+      setFormData(prev => ({ ...prev, secao_id: secaoId }))
+    }
+  }, [isOpen, secaoId, formData.secao_id])
 
   // Buscar equipes quando seção mudar
   useEffect(() => {
@@ -153,8 +165,8 @@ export function ModalHigienizacaoTPS({
     const errors: Record<string, string> = {}
 
     // Validar campos obrigatórios
-    if (!formData.secao_id) {
-      errors.secao_id = 'Base é obrigatória'
+    if (!formData.secao_id && !secaoId) {
+      errors.secao_id = 'Usuário deve ter uma base associada'
     }
 
     if (!formData.data) {
@@ -326,28 +338,13 @@ export function ModalHigienizacaoTPS({
                 <Building2 className="w-4 h-4 inline mr-2" />
                 Base *
               </label>
-              <select
-                id="secao"
-                ref={firstInputRef}
-                value={formData.secao_id}
-                onChange={(e) => updateField('secao_id', e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-[#fa4b00] transition-colors text-black ${
-                  validationErrors.secao_id ? 'border-red-500 bg-red-50' : 'border-[#cdbdae]'
-                }`}
-                disabled={loading}
-                aria-describedby={validationErrors.secao_id ? 'secao-error' : undefined}
-              >
-                <option value="">Selecione uma base</option>
-                {secoes.map((secao) => (
-                  <option key={secao.id} value={secao.id}>
-                    {secao.nome} - {secao.cidade}
-                  </option>
-                ))}
-              </select>
-              {validationErrors.secao_id && (
+              <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                {secaoId ? nomeBase : 'Usuário deve ter uma base associada'}
+              </div>
+              {!secaoId && (
                 <p id="secao-error" className="mt-1 text-sm text-red-600 flex items-center gap-1">
                   <AlertTriangle className="w-4 h-4" />
-                  {validationErrors.secao_id}
+                  Usuário deve ter uma base associada
                 </p>
               )}
             </div>
@@ -495,7 +492,7 @@ export function ModalHigienizacaoTPS({
             <button
               ref={saveButtonRef}
               onClick={handleSave}
-              disabled={saving || showSuccess}
+              disabled={saving || showSuccess || !secaoId}
               className="px-6 py-2 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63e00] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               {saving ? (

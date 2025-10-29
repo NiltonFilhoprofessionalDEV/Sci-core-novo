@@ -26,6 +26,9 @@ export function ModalControleTrocas({
   onSuccess 
 }: ModalControleTrocasProps) {
   const { user } = useAuth()
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
+  const secaoId = user?.profile?.secao?.id
+
   const {
     secoes,
     equipes,
@@ -54,7 +57,7 @@ export function ModalControleTrocas({
     loading,
     loadingEquipes,
     saving,
-    secoesCount: secoes.length,
+    secoesCount: 0,
     equipesCount: equipes.length,
     formData,
     user: user?.email
@@ -65,7 +68,7 @@ export function ModalControleTrocas({
     if (isOpen) {
       console.log('📂 Modal Controle de Trocas aberto, resetando formulário...')
       setFormData({
-        base_id: '',
+        base_id: secaoId || '',
         equipe_id: '',
         data: '',
         quantidade_troca: '',
@@ -77,7 +80,14 @@ export function ModalControleTrocas({
       // Carregar seções
       fetchSecoes()
     }
-  }, [isOpen, fetchSecoes])
+  }, [isOpen, fetchSecoes, secaoId])
+
+  // Definir base automaticamente quando o modal abrir
+  useEffect(() => {
+    if (isOpen && secaoId && !formData.base_id) {
+      setFormData(prev => ({ ...prev, base_id: secaoId }))
+    }
+  }, [isOpen, secaoId, formData.base_id])
 
   // Buscar equipes quando base mudar
   useEffect(() => {
@@ -120,8 +130,8 @@ export function ModalControleTrocas({
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {}
 
-    if (!formData.base_id) {
-      errors.base_id = 'Base é obrigatória'
+    if (!formData.base_id && !secaoId) {
+      errors.base_id = 'Usuário deve ter uma base associada'
     }
 
     if (!formData.equipe_id) {
@@ -239,27 +249,17 @@ export function ModalControleTrocas({
 
         {/* Conteúdo */}
         <div className="p-6 space-y-6">
-          {/* Seleção de Base */}
+          {/* Base do Usuário */}
           <div>
             <label className="block text-sm font-medium text-black mb-2">
               <Building2 className="w-4 h-4 inline mr-2" />
               Base *
             </label>
-            <select
-              value={formData.base_id}
-              onChange={(e) => updateField('base_id', e.target.value)}
-              disabled={loading || saving}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-black ${
-                validationErrors.base_id ? 'border-red-500' : 'border-gray-300'
-              } ${loading || saving ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
-            >
-              <option value="">Selecione uma base</option>
-              {secoes.map((secao) => (
-                <option key={secao.id} value={secao.id} className="text-black">
-                  {secao.nome}
-                </option>
-              ))}
-            </select>
+            <div className={`w-full px-3 py-2 border rounded-lg text-black ${
+              validationErrors.base_id ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-gray-50'
+            }`}>
+              {secaoId ? nomeBase : 'Usuário deve ter uma base associada'}
+            </div>
             {validationErrors.base_id && (
               <p className="text-red-500 text-sm mt-1">{validationErrors.base_id}</p>
             )}
@@ -370,7 +370,7 @@ export function ModalControleTrocas({
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || loading}
+            disabled={saving || loading || !secaoId}
             className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {saving ? (

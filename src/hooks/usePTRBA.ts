@@ -1,12 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-
-export interface Secao {
-  id: string;
-  nome: string;
-  cidade: string;
-}
 
 export interface Equipe {
   id: string;
@@ -37,38 +31,12 @@ export interface PTRBARegistro {
 }
 
 export function usePTRBA() {
-  const [secoes, setSecoes] = useState<Secao[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Buscar seções
-  const fetchSecoes = useCallback(async () => {
-    try {
-      setLoading(true);
-      console.log('🏢 Buscando seções...');
-      
-      const { data, error } = await supabase
-        .from('secoes')
-        .select('id, nome, cidade')
-        .order('nome');
 
-      if (error) {
-        console.error('❌ Erro ao buscar seções:', error);
-        toast.error('Erro ao carregar bases');
-        return;
-      }
-
-      console.log('✅ Seções carregadas:', data?.length || 0);
-      setSecoes(data || []);
-    } catch (error) {
-      console.error('❌ Erro inesperado ao buscar seções:', error);
-      toast.error('Erro inesperado ao carregar bases');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   // Buscar equipes por seção
   const fetchEquipesPorSecao = useCallback(async (secaoId: string) => {
@@ -227,21 +195,14 @@ export function usePTRBA() {
     }
   };
 
-  // Carregar seções na inicialização
-  useEffect(() => {
-    fetchSecoes();
-  }, [fetchSecoes]);
-
   return {
     // Estados
-    secoes,
     equipes,
     funcionarios,
     loading,
     saving,
     
     // Funções
-    fetchSecoes,
     fetchEquipesPorSecao,
     fetchFuncionariosPorEquipe,
     calcularStatus,

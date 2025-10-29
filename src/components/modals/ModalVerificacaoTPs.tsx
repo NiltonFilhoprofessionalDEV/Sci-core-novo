@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { AlertTriangle, CheckCircle, MapPin, Users, Calendar, Building2, X, Save, Hash } from 'lucide-react'
 import { useVerificacaoTPs, VerificacaoTPsFormData } from '@/hooks/useVerificacaoTPs'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
 
@@ -29,6 +30,11 @@ export function ModalVerificacaoTPs({
     salvarVerificacaoTPs
   } = useVerificacaoTPs()
 
+  // Dados do usuário logado
+  const { user } = useAuth()
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
+  const secaoId = user?.profile?.secao?.id
+
   // Refs para acessibilidade
   const modalRef = useRef<HTMLDivElement>(null)
   const firstInputRef = useRef<HTMLSelectElement>(null)
@@ -52,7 +58,7 @@ export function ModalVerificacaoTPs({
     isOpen,
     loading,
     saving,
-    secoesCount: secoes.length,
+    secoesCount: 0,
     equipesCount: equipes.length,
     formData
   })
@@ -92,7 +98,7 @@ export function ModalVerificacaoTPs({
     if (isOpen) {
       console.log('📂 Modal Verificação TPs aberto, resetando formulário...')
       setFormData({
-        secao_id: '',
+        secao_id: secaoId || '',
         data: '',
         equipe: '',
         tp_conforme: 0,
@@ -102,7 +108,17 @@ export function ModalVerificacaoTPs({
       setValidationErrors({})
       setShowSuccess(false)
     }
-  }, [isOpen])
+  }, [isOpen, secaoId])
+
+  // Definir automaticamente a secao_id quando o modal abrir
+  useEffect(() => {
+    if (isOpen && secaoId && !formData.secao_id) {
+      setFormData(prev => ({
+        ...prev,
+        secao_id: secaoId
+      }))
+    }
+  }, [isOpen, secaoId, formData.secao_id])
 
   // Buscar equipes quando seção mudar
   useEffect(() => {
@@ -157,8 +173,8 @@ export function ModalVerificacaoTPs({
     const errors: Record<string, string> = {}
 
     // Validar campos obrigatórios
-    if (!formData.secao_id) {
-      errors.secao_id = 'Seção é obrigatória'
+    if (!formData.secao_id && !secaoId) {
+      errors.secao_id = 'Usuário deve ter uma base associada'
     }
 
     if (!formData.data) {
@@ -365,32 +381,17 @@ export function ModalVerificacaoTPs({
 
         {/* Formulário */}
         <div className="p-6 space-y-6">
-          {/* Seção */}
+          {/* Base do Usuário */}
           <div className="space-y-2">
             <label htmlFor="secao-select" className="block text-sm font-medium text-[#1f1f1f]">
               <Building2 className="w-4 h-4 inline mr-2" />
-              Seção *
+              Base *
             </label>
-            <select
-              id="secao-select"
-              ref={firstInputRef}
-              data-field="secao_id"
-              value={formData.secao_id}
-              onChange={(e) => updateField('secao_id', e.target.value)}
-              disabled={loading || saving}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-transparent disabled:opacity-50 text-gray-900 ${
-                validationErrors.secao_id ? 'border-red-500' : 'border-gray-300'
-              }`}
-              aria-describedby={validationErrors.secao_id ? 'secao-error' : undefined}
-              aria-required="true"
-            >
-              <option value="">Selecione uma seção</option>
-              {secoes.map((secao) => (
-                <option key={secao.id} value={secao.id}>
-                  {secao.nome}
-                </option>
-              ))}
-            </select>
+            <div className={`w-full px-3 py-2 border rounded-lg text-gray-900 ${
+              validationErrors.secao_id ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-gray-50'
+            }`}>
+              {secaoId ? nomeBase : 'Usuário deve ter uma base associada'}
+            </div>
             {validationErrors.secao_id && (
               <p id="secao-error" className="text-sm text-red-600" role="alert">
                 {validationErrors.secao_id}
@@ -444,7 +445,7 @@ export function ModalVerificacaoTPs({
               aria-required="true"
             >
               <option value="">
-                {!formData.secao_id ? 'Selecione uma seção primeiro' : 'Selecione uma equipe'}
+                {!formData.secao_id ? 'Selecione uma base primeiro' : 'Selecione uma equipe'}
               </option>
               {equipes.map((equipe) => (
                 <option key={equipe.id} value={equipe.nome}>
@@ -542,32 +543,9 @@ export function ModalVerificacaoTPs({
             </div>
           </div>
 
-          {/* Erro de validação de TPs */}
-          {validationErrors.tp_valores && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-600" />
-                <p className="text-sm text-red-800" role="alert">
-                  {validationErrors.tp_valores}
-                </p>
-              </div>
-            </div>
-          )}
 
-          {/* Informação sobre consistência */}
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-blue-600 mt-0.5" />
-              <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">Regras de consistência:</p>
-                <ul className="list-disc list-inside space-y-1 text-xs">
-                  <li>TPs Conformes ≤ TPs Verificados ≤ Total de TPs</li>
-                  <li>Todos os valores devem ser números inteiros não negativos</li>
-                  <li>Total de TPs deve ser maior que zero</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+
+
         </div>
 
         {/* Footer */}
@@ -582,7 +560,7 @@ export function ModalVerificacaoTPs({
           <button
             ref={saveButtonRef}
             onClick={handleSave}
-            disabled={saving || loading || Object.keys(validationErrors).length > 0}
+            disabled={saving || loading || Object.keys(validationErrors).length > 0 || !secaoId}
             className="px-4 py-2 bg-[#fa4b00] hover:bg-[#e63d00] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
             aria-describedby="save-button-help"
           >

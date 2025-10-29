@@ -18,13 +18,7 @@ export interface AtividadeAcessoria {
   updated_at?: string
 }
 
-export interface Base {
-  id: string
-  nome: string
-  cidade: string
-  codigo: string
-  ativa: boolean
-}
+
 
 export interface Equipe {
   id: string
@@ -51,32 +45,10 @@ export const TIPOS_ATIVIDADE = [
 export const useAtividadesAcessorias = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [bases, setBases] = useState<Base[]>([])
   const [equipes, setEquipes] = useState<Equipe[]>([])
   const [tiposAtividade] = useState<TipoAtividade[]>([
     { id: '1', nome: 'Inspeção de extintores' }
   ])
-
-  // Buscar bases disponíveis
-  const fetchBases = useCallback(async () => {
-    try {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('secoes')
-        .select('id, nome, cidade, codigo, ativa')
-        .eq('ativa', true)
-        .order('nome')
-
-      if (error) throw error
-      setBases(data || [])
-    } catch (err: any) {
-      console.error('Erro ao buscar bases:', err)
-      setError('Erro ao carregar bases')
-      toast.error('Erro ao carregar bases')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
   // Buscar equipes por base
   const fetchEquipesByBase = useCallback(async (baseId: string) => {
@@ -189,7 +161,15 @@ export const useAtividadesAcessorias = () => {
       }
 
       // Buscar dados da base selecionada
-      const baseSelecionada = bases.find(base => base.id === data.base_id)
+      const { data: baseSelecionada, error: baseError } = await supabase
+        .from('secoes')
+        .select('id, nome, cidade')
+        .eq('id', data.base_id)
+        .single()
+      
+      if (baseError) {
+        console.error('Erro ao buscar dados da base:', baseError)
+      }
       
       // Buscar dados da equipe selecionada
       const equipeSelecionada = equipes.find(equipe => equipe.id === data.equipe_id)
@@ -232,18 +212,16 @@ export const useAtividadesAcessorias = () => {
     } finally {
       setLoading(false)
     }
-  }, [bases, equipes])
+  }, [equipes])
 
   return {
     // Estados
     loading,
     error,
-    bases,
     equipes,
     tiposAtividade,
 
     // Funções
-    fetchBases,
     fetchEquipesByBase,
     applyTimeMask,
     validateForm,

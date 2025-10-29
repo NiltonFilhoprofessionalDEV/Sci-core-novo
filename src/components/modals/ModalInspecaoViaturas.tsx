@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Car, Calendar, MapPin, Users, Hash, FileText } from 'lucide-react';
 import { useInspecaoViaturas } from '@/hooks/useInspecaoViaturas';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ModalInspecaoViaturasProps {
   isOpen: boolean;
@@ -22,6 +23,10 @@ const ModalInspecaoViaturas: React.FC<ModalInspecaoViaturasProps> = ({
   isOpen,
   onClose,
 }) => {
+  const { user } = useAuth()
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
+  const secaoId = user?.profile?.secao?.id
+
   const {
     bases,
     equipes,
@@ -51,7 +56,7 @@ const ModalInspecaoViaturas: React.FC<ModalInspecaoViaturasProps> = ({
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        base_id: '',
+        base_id: secaoId || '',
         data: '',
         equipe_id: '',
         quantidade_de_inspecoes: 0,
@@ -61,7 +66,14 @@ const ModalInspecaoViaturas: React.FC<ModalInspecaoViaturasProps> = ({
       setErrors({});
       setSubmitMessage(null);
     }
-  }, [isOpen]);
+  }, [isOpen, secaoId]);
+
+  // Definir base automaticamente quando o modal abrir
+  useEffect(() => {
+    if (isOpen && secaoId && !formData.base_id) {
+      setFormData(prev => ({ ...prev, base_id: secaoId }))
+    }
+  }, [isOpen, secaoId, formData.base_id]);
 
   // Buscar equipes quando a base mudar
   useEffect(() => {
@@ -90,8 +102,8 @@ const ModalInspecaoViaturas: React.FC<ModalInspecaoViaturasProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Partial<FormData> = {};
 
-    if (!formData.base_id) {
-      newErrors.base_id = 'Base é obrigatória';
+    if (!formData.base_id && !secaoId) {
+      newErrors.base_id = 'Usuário deve ter uma base associada';
     }
 
     if (!formData.data) {
@@ -191,24 +203,13 @@ const ModalInspecaoViaturas: React.FC<ModalInspecaoViaturasProps> = ({
               <MapPin className="w-4 h-4" />
               Base *
             </label>
-            <select
-              name="base_id"
-              value={formData.base_id}
-              onChange={handleInputChange}
-              disabled={isSubmitting}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:opacity-50 text-black ${
-                errors.base_id ? 'border-red-500' : 'border-gray-300'
-              }`}
-            >
-              <option value="">Selecione uma base</option>
-              {bases.map((base) => (
-                <option key={base.id} value={base.id}>
-                  {base.nome} - {base.cidade}
-                </option>
-              ))}
-            </select>
-            {errors.base_id && (
-              <p className="text-red-500 text-sm mt-1">{errors.base_id}</p>
+            <div className={`w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-700 ${
+              !secaoId ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-300'
+            }`}>
+              {secaoId ? nomeBase : 'Usuário deve ter uma base associada'}
+            </div>
+            {!secaoId && (
+              <p className="text-red-500 text-sm mt-1">Usuário deve ter uma base associada</p>
             )}
           </div>
 
@@ -354,7 +355,7 @@ const ModalInspecaoViaturas: React.FC<ModalInspecaoViaturasProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || loading}
+              disabled={isSubmitting || loading || !secaoId}
               className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (

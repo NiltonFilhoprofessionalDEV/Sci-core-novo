@@ -1,15 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface Funcionario {
   id: string;
   nome_completo: string;
   equipe_id: string;
-}
-
-interface Base {
-  id: string;
-  nome: string;
 }
 
 interface Equipe {
@@ -33,7 +28,6 @@ interface TempoEPRData {
 }
 
 export const useTempoEPR = () => {
-  const [bases, setBases] = useState<Base[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [temposEPR, setTemposEPR] = useState<Record<string, string>>({});
@@ -45,25 +39,6 @@ export const useTempoEPR = () => {
   const [dataSelecionada, setDataSelecionada] = useState('');
   const [equipeSelecionada, setEquipeSelecionada] = useState('');
   const [etapaAtual, setEtapaAtual] = useState<'selecao' | 'tabela'>('selecao');
-
-  // Buscar bases disponíveis
-  const buscarBases = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('secoes')
-        .select('id, nome')
-        .order('nome');
-
-      if (error) throw error;
-      setBases(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar bases:', error);
-      setErrors(prev => ({ ...prev, bases: 'Erro ao carregar bases' }));
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Buscar equipes por base
   const buscarEquipesPorBase = async (baseId: string) => {
@@ -119,155 +94,15 @@ export const useTempoEPR = () => {
     const [minutos, segundos] = tempo.split(':').map(Number);
     const totalSegundos = (minutos * 60) + segundos;
     
-    if (totalSegundos <= 50) return 'Ideal';
-    if (totalSegundos <= 60) return 'Tolerável';
-    return 'Reprovado';
+    if (totalSegundos <= 50) return 'Ideal';        // Até 00:50
+    if (totalSegundos <= 60) return 'Tolerável';    // De 00:51 até 01:00
+    return 'Reprovado';                              // Acima de 01:00
   };
 
-  // Validar formato de tempo MM:SS
+  // Validar formato de tempo (MM:SS)
   const validarFormatoTempo = (tempo: string): boolean => {
-    const regex = /^[0-5][0-9]:[0-9][0-9]$/;
+    const regex = /^([0-5]?[0-9]):([0-5][0-9])$/;
     return regex.test(tempo);
-  };
-
-  // Validar data (não pode ser futura)
-  const validarData = (data: string): boolean => {
-    const hoje = new Date();
-    const dataInformada = new Date(data);
-    return dataInformada <= hoje;
-  };
-
-  // Verificar duplicatas
-  const verificarDuplicatas = async (equipeId: string, data: string): Promise<boolean> => {
-    try {
-      const { data: registros, error } = await supabase
-        .from('tempo_epr')
-        .select('id')
-        .eq('equipe_id', equipeId)
-        .eq('data_exercicio_epr', data);
-
-      if (error) throw error;
-      return (registros || []).length > 0;
-    } catch (error) {
-      console.error('Erro ao verificar duplicatas:', error);
-      return false;
-    }
-  };
-
-  // Validar formulário
-  const validarFormulario = async (): Promise<boolean> => {
-    const novosErros: Record<string, string> = {};
-
-    if (!baseSelecionada) {
-      novosErros.base = 'Base é obrigatória';
-    }
-
-    if (!dataSelecionada) {
-      novosErros.data = 'Data é obrigatória';
-    } else if (!validarData(dataSelecionada)) {
-      novosErros.data = 'Data não pode ser futura';
-    }
-
-    if (!equipeSelecionada) {
-      novosErros.equipe = 'Equipe é obrigatória';
-    }
-
-    // Verificar duplicatas se todos os campos estão preenchidos
-    if (equipeSelecionada && dataSelecionada && !novosErros.data) {
-      const temDuplicata = await verificarDuplicatas(equipeSelecionada, dataSelecionada);
-      if (temDuplicata) {
-        novosErros.duplicata = 'Já existem registros para esta equipe nesta data';
-      }
-    }
-
-    setErrors(novosErros);
-    return Object.keys(novosErros).length === 0;
-  };
-
-  // Validar tempos EPR
-  const validarTemposEPR = (): boolean => {
-    const novosErros: Record<string, string> = {};
-
-    Object.entries(temposEPR).forEach(([funcionarioId, tempo]) => {
-      if (!tempo) {
-        novosErros[`tempo_${funcionarioId}`] = 'Tempo é obrigatório';
-      } else if (!validarFormatoTempo(tempo)) {
-        novosErros[`tempo_${funcionarioId}`] = 'Formato inválido (MM:SS)';
-      }
-    });
-
-    setErrors(novosErros);
-    return Object.keys(novosErros).length === 0;
-  };
-
-  // Salvar dados no Supabase
-  const salvarTemposEPR = async (): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-
-      // Validar tempos antes de salvar
-      if (!validarTemposEPR()) {
-        return false;
-      }
-
-      // Buscar informações da equipe selecionada
-      const equipe = equipes.find(e => e.id === equipeSelecionada);
-      if (!equipe) {
-        setErrors(prev => ({ ...prev, geral: 'Equipe não encontrada' }));
-        return false;
-      }
-
-      // Obter usuário logado
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        setErrors(prev => ({ ...prev, geral: 'Usuário não autenticado' }));
-        return false;
-      }
-
-      // Preparar dados para inserção
-      const dadosParaInserir: TempoEPRData[] = funcionarios.map(funcionario => {
-        const tempo = temposEPR[funcionario.id];
-        return {
-          secao_id: baseSelecionada,
-          equipe_id: equipeSelecionada,
-          usuario_id: user.id,
-          data_referencia: dataSelecionada,
-          nome_cidade: equipe.nome_cidade,
-          data_exercicio_epr: dataSelecionada,
-          nome_completo: funcionario.nome_completo,
-          tempo_epr: tempo,
-          status: calcularStatus(tempo),
-          equipe: equipe.nome
-        };
-      });
-
-      // Inserir no Supabase
-      const { error } = await supabase
-        .from('tempo_epr')
-        .insert(dadosParaInserir);
-
-      if (error) throw error;
-
-      return true;
-    } catch (error) {
-      console.error('Erro ao salvar tempos EPR:', error);
-      setErrors(prev => ({ ...prev, geral: 'Erro ao salvar dados' }));
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Resetar formulário
-  const resetarFormulario = () => {
-    setBaseSelecionada('');
-    setDataSelecionada('');
-    setEquipeSelecionada('');
-    setEquipes([]);
-    setFuncionarios([]);
-    setTemposEPR({});
-    setEtapaAtual('selecao');
-    setErrors({});
   };
 
   // Atualizar tempo de um funcionário
@@ -276,24 +111,48 @@ export const useTempoEPR = () => {
       ...prev,
       [funcionarioId]: tempo
     }));
-    
-    // Limpar erro específico se existir
-    if (errors[`tempo_${funcionarioId}`]) {
-      setErrors(prev => {
-        const novosErros = { ...prev };
-        delete novosErros[`tempo_${funcionarioId}`];
-        return novosErros;
-      });
-    }
   };
 
-  // Prosseguir para tabela
-  const prosseguirParaTabela = async () => {
-    const valido = await validarFormulario();
-    if (valido) {
-      await buscarFuncionariosPorEquipe(equipeSelecionada);
-      setEtapaAtual('tabela');
+  // Validar formulário de seleção
+  const validarFormulario = (): boolean => {
+    const novosErros: Record<string, string> = {};
+    
+    if (!dataSelecionada) {
+      novosErros.data = 'Data é obrigatória';
     }
+    
+    if (!equipeSelecionada) {
+      novosErros.equipe = 'Equipe é obrigatória';
+    }
+    
+    setErrors(novosErros);
+    return Object.keys(novosErros).length === 0;
+  };
+
+  // Validar tempos EPR
+  const validarTemposEPR = (): boolean => {
+    const novosErros: Record<string, string> = {};
+    
+    funcionarios.forEach(funcionario => {
+      const tempo = temposEPR[funcionario.id];
+      if (!tempo) {
+        novosErros[funcionario.id] = 'Tempo é obrigatório';
+      } else if (!validarFormatoTempo(tempo)) {
+        novosErros[funcionario.id] = 'Formato inválido (MM:SS)';
+      }
+    });
+    
+    setErrors(novosErros);
+    return Object.keys(novosErros).length === 0;
+  };
+
+  // Prosseguir para tabela de tempos
+  const prosseguirParaTabela = async (): Promise<boolean> => {
+    if (!validarFormulario()) return false;
+    
+    await buscarFuncionariosPorEquipe(equipeSelecionada);
+    setEtapaAtual('tabela');
+    return true;
   };
 
   // Voltar para seleção
@@ -301,27 +160,89 @@ export const useTempoEPR = () => {
     setEtapaAtual('selecao');
     setFuncionarios([]);
     setTemposEPR({});
+    setErrors({});
   };
 
-  // Carregar bases ao inicializar
-  useEffect(() => {
-    buscarBases();
-  }, []);
+  // Resetar formulário
+  const resetarFormulario = () => {
+    setBaseSelecionada('');
+    setDataSelecionada('');
+    setEquipeSelecionada('');
+    setFuncionarios([]);
+    setTemposEPR({});
+    setErrors({});
+    setEtapaAtual('selecao');
+  };
 
-  // Buscar equipes quando base for selecionada
-  useEffect(() => {
-    if (baseSelecionada) {
-      buscarEquipesPorBase(baseSelecionada);
-      setEquipeSelecionada(''); // Reset equipe quando base muda
-    } else {
-      setEquipes([]);
-      setEquipeSelecionada('');
+  // Salvar tempos EPR
+  const salvarTemposEPR = async (secaoId: string): Promise<boolean> => {
+    if (!validarTemposEPR()) return false;
+    
+    try {
+      setIsLoading(true);
+      
+      // Obter dados do usuário logado
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+      
+      // Buscar dados da equipe selecionada
+      const equipe = equipes.find(e => e.id === equipeSelecionada);
+      if (!equipe) {
+        throw new Error('Equipe não encontrada');
+      }
+      
+      // Preparar dados para inserção
+      const dadosParaInserir: TempoEPRData[] = funcionarios.map(funcionario => ({
+        secao_id: secaoId,
+        equipe_id: equipeSelecionada,
+        usuario_id: user.id,
+        data_referencia: dataSelecionada,
+        nome_cidade: equipe.nome_cidade,
+        data_exercicio_epr: dataSelecionada,
+        nome_completo: funcionario.nome_completo,
+        tempo_epr: temposEPR[funcionario.id],
+        status: calcularStatus(temposEPR[funcionario.id]),
+        equipe: equipe.nome
+      }));
+      
+      // Verificar duplicatas
+      const { data: existingData, error: checkError } = await supabase
+        .from('tempo_epr')
+        .select('id')
+        .eq('secao_id', secaoId)
+        .eq('equipe_id', equipeSelecionada)
+        .eq('data_exercicio_epr', dataSelecionada);
+      
+      if (checkError) throw checkError;
+      
+      if (existingData && existingData.length > 0) {
+        throw new Error('Já existem registros para esta equipe nesta data');
+      }
+      
+      // Inserir dados
+      const { error: insertError } = await supabase
+        .from('tempo_epr')
+        .insert(dadosParaInserir);
+      
+      if (insertError) throw insertError;
+      
+      return true;
+    } catch (error) {
+      console.error('Erro ao salvar tempos EPR:', error);
+      setErrors(prev => ({ 
+        ...prev, 
+        geral: error instanceof Error ? error.message : 'Erro ao salvar dados' 
+      }));
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-  }, [baseSelecionada]);
+  };
 
   return {
     // Estados
-    bases,
     equipes,
     funcionarios,
     temposEPR,
@@ -338,6 +259,7 @@ export const useTempoEPR = () => {
     setEquipeSelecionada,
 
     // Funções
+    buscarEquipesPorBase,
     calcularStatus,
     validarFormulario,
     validarTemposEPR,

@@ -8,6 +8,16 @@ import { OcorrenciaAeronauticaForm } from '@/components/forms/OcorrenciaAeronaut
 import OcorrenciaNaoAeronauticaForm from '@/components/forms/OcorrenciaNaoAeronauticaForm'
 import { AtividadesAcessoriasModal } from '@/components/modals/AtividadesAcessoriasModal'
 import { TAFModal } from '@/components/modals/TAFModal'
+import { PTRBAModal } from '@/components/modals/PTRBAModal'
+import { ModalHorasTreinamento } from '@/components/modals/ModalHorasTreinamento'
+import ModalTempoEPR from '@/components/modals/ModalTempoEPR'
+import ModalTempoResposta from '@/components/modals/ModalTempoResposta'
+import { ModalControleAgentesExtintores } from '@/components/modals/ModalControleAgentesExtintores'
+import { ModalControleTrocas } from '@/components/modals/ModalControleTrocas'
+import ModalInspecaoViaturas from '@/components/modals/ModalInspecaoViaturas'
+import { ModalVerificacaoTPs } from '@/components/modals/ModalVerificacaoTPs'
+import { ModalHigienizacaoTPS } from '@/components/modals/ModalHigienizacaoTPS'
+import { ModalControleUniformesRecebidos } from '@/components/modals/ModalControleUniformesRecebidos'
 import { AuthenticatedRoute } from '@/components/auth/ProtectedRoute'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { 
@@ -48,6 +58,16 @@ export default function PreencherIndicadoresPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalTema, setModalTema] = useState<Tema | null>(null)
   const [isTAFModalOpen, setIsTAFModalOpen] = useState(false)
+  const [isPTRBAModalOpen, setIsPTRBAModalOpen] = useState(false)
+  const [isHorasTreinamentoModalOpen, setIsHorasTreinamentoModalOpen] = useState(false)
+  const [isTempoEPRModalOpen, setIsTempoEPRModalOpen] = useState(false)
+  const [isTempoRespostaModalOpen, setIsTempoRespostaModalOpen] = useState(false)
+  const [isControleAgentesModalOpen, setIsControleAgentesModalOpen] = useState(false)
+  const [isControleTrocasModalOpen, setIsControleTrocasModalOpen] = useState(false)
+  const [isInspecaoViaturasModalOpen, setIsInspecaoViaturasModalOpen] = useState(false)
+  const [isVerificacaoTPsModalOpen, setIsVerificacaoTPsModalOpen] = useState(false)
+  const [isHigienizacaoTPSModalOpen, setIsHigienizacaoTPSModalOpen] = useState(false)
+  const [isControleUniformesModalOpen, setIsControleUniformesModalOpen] = useState(false)
 
   const temas: Tema[] = [
     {
@@ -185,6 +205,26 @@ export default function PreencherIndicadoresPage() {
   const handlePreencherClick = (tema: Tema) => {
     if (tema.id === 'taf') {
       setIsTAFModalOpen(true)
+    } else if (tema.id === 'ptr-ba-prova-teorica') {
+      setIsPTRBAModalOpen(true)
+    } else if (tema.id === 'ptr-ba-horas-treinamento') {
+      setIsHorasTreinamentoModalOpen(true)
+    } else if (tema.id === 'tempo-epr') {
+      setIsTempoEPRModalOpen(true)
+    } else if (tema.id === 'tempo-resposta') {
+      setIsTempoRespostaModalOpen(true)
+    } else if (tema.id === 'controle-agentes-extintores') {
+      setIsControleAgentesModalOpen(true)
+    } else if (tema.id === 'controle-trocas') {
+      setIsControleTrocasModalOpen(true)
+    } else if (tema.id === 'inspecoes-viaturas') {
+      setIsInspecaoViaturasModalOpen(true)
+    } else if (tema.id === 'verificacao-tps') {
+      setIsVerificacaoTPsModalOpen(true)
+    } else if (tema.id === 'higienizacao-tps') {
+      setIsHigienizacaoTPSModalOpen(true)
+    } else if (tema.id === 'controle-uniformes-recebidos') {
+      setIsControleUniformesModalOpen(true)
     } else {
       setModalTema(tema)
       setIsModalOpen(true)
@@ -392,7 +432,93 @@ export default function PreencherIndicadoresPage() {
           }}
         />
 
-        {modalTema && modalTema.id !== 'ocorrencias-aeronauticas' && modalTema.id !== 'ocorrencia-nao-aeronautica' && modalTema.id !== 'atividades-acessorias' && modalTema.id !== 'taf' && (
+        <PTRBAModal
+          isOpen={isPTRBAModalOpen}
+          onClose={() => setIsPTRBAModalOpen(false)}
+          onSuccess={() => {
+            setIsPTRBAModalOpen(false)
+            // Aqui você pode adicionar uma notificação de sucesso se desejar
+          }}
+        />
+
+        <ModalHorasTreinamento
+          isOpen={isHorasTreinamentoModalOpen}
+          onClose={() => setIsHorasTreinamentoModalOpen(false)}
+          onSuccess={() => {
+            setIsHorasTreinamentoModalOpen(false)
+            // Aqui você pode adicionar uma notificação de sucesso se desejar
+          }}
+        />
+
+        <ModalTempoEPR
+          isOpen={isTempoEPRModalOpen}
+          onClose={() => setIsTempoEPRModalOpen(false)}
+          onSuccess={() => {
+            setIsTempoEPRModalOpen(false)
+            // Aqui você pode adicionar uma notificação de sucesso se desejar
+          }}
+        />
+
+        <ModalTempoResposta
+          isOpen={isTempoRespostaModalOpen}
+          onClose={() => setIsTempoRespostaModalOpen(false)}
+          onSuccess={() => {
+            setIsTempoRespostaModalOpen(false)
+            // Aqui você pode adicionar uma notificação de sucesso se desejar
+          }}
+        />
+
+        <ModalControleAgentesExtintores
+          isOpen={isControleAgentesModalOpen}
+          onClose={() => setIsControleAgentesModalOpen(false)}
+          onSuccess={() => {
+            setIsControleAgentesModalOpen(false)
+            // Aqui você pode adicionar uma notificação de sucesso se desejar
+          }}
+        />
+
+        <ModalControleTrocas
+          isOpen={isControleTrocasModalOpen}
+          onClose={() => setIsControleTrocasModalOpen(false)}
+          onSuccess={() => {
+            setIsControleTrocasModalOpen(false)
+            // Aqui você pode adicionar uma notificação de sucesso se desejar
+          }}
+        />
+
+        <ModalInspecaoViaturas
+          isOpen={isInspecaoViaturasModalOpen}
+          onClose={() => setIsInspecaoViaturasModalOpen(false)}
+        />
+
+        <ModalVerificacaoTPs
+          isOpen={isVerificacaoTPsModalOpen}
+          onClose={() => setIsVerificacaoTPsModalOpen(false)}
+          onSuccess={() => {
+            setIsVerificacaoTPsModalOpen(false)
+            // Aqui você pode adicionar uma notificação de sucesso se desejar
+          }}
+        />
+
+        <ModalHigienizacaoTPS
+          isOpen={isHigienizacaoTPSModalOpen}
+          onClose={() => setIsHigienizacaoTPSModalOpen(false)}
+          onSuccess={() => {
+            setIsHigienizacaoTPSModalOpen(false)
+            // Aqui você pode adicionar uma notificação de sucesso se desejar
+          }}
+        />
+
+        <ModalControleUniformesRecebidos
+          isOpen={isControleUniformesModalOpen}
+          onClose={() => setIsControleUniformesModalOpen(false)}
+          onSuccess={() => {
+            setIsControleUniformesModalOpen(false)
+            // Aqui você pode adicionar uma notificação de sucesso se desejar
+          }}
+        />
+
+        {modalTema && modalTema.id !== 'ocorrencias-aeronauticas' && modalTema.id !== 'ocorrencia-nao-aeronautica' && modalTema.id !== 'atividades-acessorias' && modalTema.id !== 'taf' && modalTema.id !== 'ptr-ba-prova-teorica' && modalTema.id !== 'ptr-ba-horas-treinamento' && modalTema.id !== 'tempo-epr' && modalTema.id !== 'tempo-resposta' && modalTema.id !== 'controle-agentes-extintores' && modalTema.id !== 'controle-trocas' && modalTema.id !== 'inspecoes-viaturas' && modalTema.id !== 'verificacao-tps' && modalTema.id !== 'higienizacao-tps' && modalTema.id !== 'controle-uniformes-recebidos' && (
           <Modal
             isOpen={isModalOpen}
             onClose={handleCloseModal}

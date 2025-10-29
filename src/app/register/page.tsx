@@ -30,7 +30,7 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
     nome_completo: '',
-    perfil: 'ba_ce' as 'gestor_pop' | 'gerente_secao' | 'ba_ce',
+    perfil: 'ba_ce' as 'gestor_pop' | 'gerente_secao' | 'ba_ce' | 'chefe_equipe',
     secao_id: '',
     equipe_id: ''
   })
@@ -108,6 +108,11 @@ export default function RegisterPage() {
 
     if (formData.perfil === 'ba_ce' && (!formData.secao_id || !formData.equipe_id)) {
       setError('BACE deve selecionar seção e equipe')
+      return
+    }
+
+    if (formData.perfil === 'chefe_equipe' && (!formData.secao_id || !formData.equipe_id)) {
+      setError('Chefe de equipe deve selecionar seção e equipe')
       return
     }
 
@@ -234,12 +239,13 @@ export default function RegisterPage() {
               className="w-full px-4 py-3 border border-[#7a5b3e]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7a5b3e] focus:border-transparent text-[#1f1f1f]"
             >
               <option value="ba_ce">BACE (Bombeiro de Aeródromo Civil Especializado)</option>
+              <option value="chefe_equipe">Chefe de Equipe</option>
               <option value="gerente_secao">Gerente de Seção</option>
               <option value="gestor_pop">Gestor Populacional</option>
             </select>
           </div>
 
-          {(formData.perfil === 'gerente_secao' || formData.perfil === 'ba_ce') && (
+          {(formData.perfil === 'gerente_secao' || formData.perfil === 'ba_ce' || formData.perfil === 'chefe_equipe') && (
             <div>
               <label htmlFor="secao_id" className="block text-sm font-medium text-[#1f1f1f] mb-2">
                 Seção
@@ -262,7 +268,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {formData.perfil === 'ba_ce' && formData.secao_id && (
+          {(formData.perfil === 'ba_ce' || formData.perfil === 'chefe_equipe') && formData.secao_id && (
             <div>
               <label htmlFor="equipe_id" className="block text-sm font-medium text-[#1f1f1f] mb-2">
                 Equipe

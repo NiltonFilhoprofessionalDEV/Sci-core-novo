@@ -1,14 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
-export interface Secao {
-  id: string
-  nome: string
-  codigo: string
-  cidade: string
-  estado: string
-  ativa: boolean
-}
+
 
 export interface Equipe {
   id: string
@@ -56,29 +49,9 @@ export interface FormData {
 export const useOcorrenciasAeronauticas = () => {
   console.log('🎯 Hook useOcorrenciasAeronauticas inicializado!')
   
-  const [secoes, setSecoes] = useState<Secao[]>([])
   const [equipes, setEquipes] = useState<Equipe[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Buscar seções ativas
-  const fetchSecoes = async () => {
-    try {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('secoes')
-        .select('*')
-        .eq('ativa', true)
-        .order('nome')
-
-      if (error) throw error
-      setSecoes(data || [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar seções')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   // Buscar equipes por seção
   const fetchEquipesBySecao = useCallback(async (secaoId: string) => {
@@ -218,18 +191,14 @@ export const useOcorrenciasAeronauticas = () => {
     return fimEmSegundos > inicioEmSegundos
   }, [validateTimeFormat])
 
-  useEffect(() => {
-    fetchSecoes()
-  }, [])
+
 
 
 
   return {
-    secoes,
     equipes,
     loading,
     error,
-    fetchSecoes,
     fetchEquipesBySecao,
     saveOcorrencia,
     validateTimeFormat,

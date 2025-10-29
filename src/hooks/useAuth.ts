@@ -14,6 +14,8 @@ export function useAuth() {
   // Função para buscar perfil do usuário
   const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
+      console.log('🔍 useAuth - Buscando perfil para userId:', userId)
+      
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -26,21 +28,37 @@ export function useAuth() {
         .single()
 
       if (error) {
-        console.error('Erro ao buscar perfil:', error)
+        console.error('❌ useAuth - Erro ao buscar perfil:', error)
         return null
       }
 
+      console.log('✅ useAuth - Perfil encontrado:', {
+        profile: data,
+        hasSecao: !!data?.secao,
+        secaoNome: data?.secao?.nome,
+        secaoId: data?.secao?.id
+      })
+
       return data
     } catch (error) {
-      console.error('Erro ao buscar perfil:', error)
+      console.error('❌ useAuth - Erro ao buscar perfil:', error)
       return null
     }
   }
 
   // Função para atualizar dados do usuário
   const updateUserData = async (authUser: User | null) => {
+    console.log('🔄 useAuth - Atualizando dados do usuário:', { authUser: authUser?.id })
+    
     if (authUser) {
       const userProfile = await fetchUserProfile(authUser.id)
+      
+      console.log('👤 useAuth - Criando objeto AuthUser:', {
+        userId: authUser.id,
+        email: authUser.email,
+        profileExists: !!userProfile,
+        profileSecao: userProfile?.secao
+      })
       
       setUser({
         id: authUser.id,
@@ -57,6 +75,7 @@ export function useAuth() {
           .eq('id', authUser.id)
       }
     } else {
+      console.log('🚪 useAuth - Usuário deslogado, limpando dados')
       setUser(null)
       setProfile(null)
     }
@@ -129,7 +148,7 @@ export function useAuth() {
 
   const signUp = async (email: string, password: string, userData: {
     nome_completo: string
-    perfil: 'gestor_pop' | 'gerente_secao' | 'ba_ce'
+    perfil: 'gestor_pop' | 'gerente_secao' | 'ba_ce' | 'chefe_equipe'
     secao_id?: string
     equipe_id?: string
   }) => {

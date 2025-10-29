@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Building2, Users, Calendar, FileText, Clock, X, RotateCcw, Save } from 'lucide-react'
 import { useOcorrenciasAeronauticas, FormData } from '@/hooks/useOcorrenciasAeronauticas'
+import { useAuth } from '@/hooks/useAuth'
 
 interface OcorrenciaAeronauticaFormProps {
   onSuccess?: () => void
@@ -15,8 +16,8 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
 }) => {
   console.log('🚀 OcorrenciaAeronauticaForm renderizado!')
   
+  const { user } = useAuth()
   const {
-    secoes,
     equipes,
     loading,
     error,
@@ -46,6 +47,17 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [tempoTotal, setTempoTotal] = useState<string>('00:00:00')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Obter nome da base do usuário logado
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
+  const secaoId = user?.profile?.secao?.id
+
+  // Definir automaticamente a secao_id quando o usuário estiver carregado
+  useEffect(() => {
+    if (secaoId && !formData.secao_id) {
+      setFormData(prev => ({ ...prev, secao_id: secaoId }))
+    }
+  }, [secaoId, formData.secao_id])
 
   // Calcular tempo total quando horários mudarem
   useEffect(() => {
@@ -106,13 +118,12 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
   // Função para lidar com seleção de equipe
   const handleEquipeChange = (equipeId: string) => {
     const equipeSelecionada = equipes.find(equipe => equipe.id === equipeId)
-    const secaoSelecionada = secoes.find(secao => secao.id === formData.secao_id)
     
     setFormData(prev => ({
       ...prev,
       equipe_id: equipeId,
       equipe: equipeSelecionada?.nome || '',
-      cidade_aeroporto: secaoSelecionada?.cidade || ''
+      cidade_aeroporto: user?.profile?.secao?.cidade || ''
     }))
     
     // Limpar erro do campo quando usuário selecionar
@@ -192,7 +203,7 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
 
   const handleClear = () => {
     setFormData({
-      secao_id: '',
+      secao_id: secaoId || '',
       equipe_id: '',
       data_ocorrencia: '',
       tipo_ocorrencia: 'Emergência Aeronáutica',
@@ -234,28 +245,15 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
         {/* Linha 1: Base e Data */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="secao_id" className="flex items-center gap-2 text-base font-semibold text-black mb-3 leading-relaxed">
+            <label className="flex items-center gap-2 text-base font-semibold text-black mb-3 leading-relaxed">
               <Building2 className="w-4 h-4 text-[#7a5b3e]" />
-              Base *
+              Base
             </label>
-            <select
-              id="secao_id"
-              value={formData.secao_id}
-              onChange={(e) => handleInputChange('secao_id', e.target.value)}
-              className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed ${
-                fieldErrors.secao_id ? 'border-red-500' : 'border-gray-400'
-              }`}
-              disabled={loading}
-            >
-              <option value="" className="text-gray-700">Selecione uma base</option>
-              {secoes.map((secao) => (
-                <option key={secao.id} value={secao.id} className="text-black">
-                  {secao.nome} - {secao.cidade}/{secao.estado}
-                </option>
-              ))}
-            </select>
-            {fieldErrors.secao_id && (
-              <p className="mt-2 text-base text-red-700 font-medium">{fieldErrors.secao_id}</p>
+            <div className="w-full px-4 py-3 text-base text-black border border-gray-300 rounded-lg bg-gray-50">
+              {nomeBase}
+            </div>
+            {!secaoId && (
+              <p className="mt-2 text-base text-red-700 font-medium">Usuário não possui base associada</p>
             )}
           </div>
 
@@ -288,7 +286,7 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
               Equipe * {loading && <span className="text-orange-500">(Carregando...)</span>}
             </label>
             <p className="mb-3 text-sm text-gray-600 leading-relaxed">
-              Selecione a base para poder selecionar a equipe.
+              Equipes disponíveis para sua base.
             </p>
             <select
               id="equipe_id"

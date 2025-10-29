@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { AlertTriangle, Clock, MapPin, Users, Calendar, Building2, FileText, X, Save } from 'lucide-react'
-import { useOcorrenciasNaoAeronauticas, OcorrenciaNaoAeronautica } from '@/hooks/useOcorrenciasNaoAeronauticas'
-import { useOcorrenciasAeronauticas } from '@/hooks/useOcorrenciasAeronauticas'
+import { AlertTriangle, Clock, MapPin, Users, Calendar, Building2, FileText, X, Save, Loader2 } from 'lucide-react'
+import { useOcorrenciasNaoAeronauticas, OcorrenciaNaoAeronautica, TIPOS_OCORRENCIA } from '@/hooks/useOcorrenciasNaoAeronauticas'
+import { useAuth } from '@/hooks/useAuth'
 
 interface OcorrenciaNaoAeronauticaFormProps {
   isOpen: boolean
@@ -16,77 +16,68 @@ export default function OcorrenciaNaoAeronauticaForm({
   onClose, 
   onSuccess 
 }: OcorrenciaNaoAeronauticaFormProps) {
+  const { user } = useAuth()
   const {
     loading,
     error,
     equipes,
-    tiposOcorrencia,
-    sugestoesLocais,
-    equipesPadrao,
-    validateForm,
     saveOcorrencia,
     applyTimeMask,
     fetchEquipesBySecao,
-    setEquipes,
+    validateForm,
     setError
   } = useOcorrenciasNaoAeronauticas()
 
-  // Hook para buscar seções
-  const { secoes } = useOcorrenciasAeronauticas()
+  // Estados do formulário
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  
+  // Dados do usuário
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
+  const secaoId = user?.profile?.secao?.id
+  const cidadeAeroporto = user?.profile?.secao?.nome?.split(' - ')[1] || 'Cidade não identificada'
 
-  // Estado do formulário - atualizado para usar secao_id
+  // Estado do formulário
   const [formData, setFormData] = useState<OcorrenciaNaoAeronautica>({
     secao_id: '',
-    data_ocorrencia: '',
+    data_ocorrencia: new Date().toISOString().split('T')[0], // Data atual por padrão
     equipe_id_form: '',
     tipo_ocorrencia: '',
     local_ocorrencia: '',
     hora_acionamento: '',
     hora_chegada: '',
-    hora_termino: ''
+    hora_termino: '',
+    equipe: '',
+    cidade_aeroporto: ''
   })
-
-  // Estado de validação
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
-  const [showSuccess, setShowSuccess] = useState(false)
 
   // Resetar formulário quando modal abre
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && secaoId) {
       setFormData({
-        secao_id: '',
-        data_ocorrencia: '',
+        secao_id: secaoId,
+        data_ocorrencia: new Date().toISOString().split('T')[0],
         equipe_id_form: '',
         tipo_ocorrencia: '',
         local_ocorrencia: '',
         hora_acionamento: '',
         hora_chegada: '',
-        hora_termino: ''
+        hora_termino: '',
+        equipe: '',
+        cidade_aeroporto: cidadeAeroporto
       })
       setValidationErrors({})
       setError(null)
       setShowSuccess(false)
-      setEquipes([]) // Limpar equipes quando modal abre
+      setIsSubmitting(false)
+      
+      // Buscar equipes da seção
+      if (secaoId) {
+        fetchEquipesBySecao(secaoId)
+      }
     }
-  }, [isOpen])
-
-  // Buscar equipes quando seção mudar
-  useEffect(() => {
-    console.log('🔄 useEffect disparado - formData.secao_id:', formData.secao_id)
-    console.log('📊 Estado atual das equipes:', equipes)
-    console.log('⏳ Estado de loading:', loading)
-    
-    if (formData.secao_id) {
-      console.log('📞 Chamando fetchEquipesBySecao para seção:', formData.secao_id)
-      fetchEquipesBySecao(formData.secao_id)
-      // Limpar equipe selecionada
-      setFormData(prev => ({ ...prev, equipe_id_form: '' }))
-      console.log('🧹 Equipe limpa do formulário')
-    } else {
-      console.log('⚠️ Nenhuma seção selecionada, limpando equipes')
-      setEquipes([])
-    }
-  }, [formData.secao_id])
+  }, [isOpen, secaoId, cidadeAeroporto])
 
   // Atualizar campo do formulário
   const updateField = (field: keyof OcorrenciaNaoAeronautica, value: string) => {
@@ -100,380 +91,357 @@ export default function OcorrenciaNaoAeronauticaForm({
         return newErrors
       })
     }
-  }
 
-  // Função para lidar com seleção de equipe
-  const handleEquipeChange = (equipeId: string) => {
-    const equipeSelecionada = equipes.find(equipe => equipe.id === equipeId)
-    const secaoSelecionada = secoes.find(secao => secao.id === formData.secao_id)
-    
-    setFormData(prev => ({
-      ...prev,
-      equipe_id_form: equipeId,
-      equipe: equipeSelecionada?.nome || '',
-      cidade_aeroporto: secaoSelecionada?.cidade || ''
-    }))
-    
-    // Limpar erro do campo quando usuário selecionar
-    if (validationErrors.equipe_id_form) {
-      setValidationErrors(prev => ({ ...prev, equipe_id_form: '' }))
+    // Atualizar nome da equipe quando equipe_id_form mudar
+    if (field === 'equipe_id_form' && value) {
+      const equipeSelecionada = equipes.find(eq => eq.id === value)
+      if (equipeSelecionada) {
+        setFormData(prev => ({ ...prev, equipe: equipeSelecionada.nome }))
+      }
     }
   }
 
-  // Aplicar máscara de horário
-  const handleTimeChange = (field: keyof OcorrenciaNaoAeronautica, value: string) => {
+  // Aplicar máscara de tempo
+  const handleTimeInput = (field: keyof OcorrenciaNaoAeronautica, value: string) => {
     const maskedValue = applyTimeMask(value)
     updateField(field, maskedValue)
   }
 
+  // Validar formulário localmente
+  const validateFormData = (): boolean => {
+    const errors: Record<string, string> = {}
 
+    if (!formData.data_ocorrencia) {
+      errors.data_ocorrencia = 'Data da ocorrência é obrigatória'
+    }
 
-  // Salvar ocorrência
-  const handleSave = async () => {
-    // Validar formulário
-    const validation = validateForm(formData)
+    if (!formData.equipe_id_form) {
+      errors.equipe_id_form = 'Equipe é obrigatória'
+    }
+
+    if (!formData.tipo_ocorrencia) {
+      errors.tipo_ocorrencia = 'Tipo de ocorrência é obrigatório'
+    }
+
+    if (!formData.local_ocorrencia?.trim()) {
+      errors.local_ocorrencia = 'Local da ocorrência é obrigatório'
+    }
+
+    if (!formData.hora_acionamento) {
+      errors.hora_acionamento = 'Hora do acionamento é obrigatória'
+    }
+
+    if (!formData.hora_chegada) {
+      errors.hora_chegada = 'Hora da chegada é obrigatória'
+    }
+
+    if (!formData.hora_termino) {
+      errors.hora_termino = 'Hora do término é obrigatória'
+    }
+
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  // Submeter formulário
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     
-    if (!validation.isValid) {
-      setValidationErrors(validation.errors)
+    // Validação local primeiro
+    if (!validateFormData()) {
       return
     }
 
-    // Salvar dados
-    const success = await saveOcorrencia(formData)
-    
-    if (success) {
-      setShowSuccess(true)
-      setTimeout(() => {
-        setShowSuccess(false)
-        onSuccess?.()
-        onClose()
-      }, 2000)
+    if (!secaoId) {
+      setError('Seção do usuário não encontrada')
+      return
+    }
+
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      // Preparar dados completos
+      const dadosCompletos = {
+        ...formData,
+        secao_id: secaoId,
+        cidade_aeroporto: cidadeAeroporto
+      }
+
+      const success = await saveOcorrencia(dadosCompletos)
+      
+      if (success) {
+        setShowSuccess(true)
+        setTimeout(() => {
+          setShowSuccess(false)
+          onClose()
+          if (onSuccess) {
+            onSuccess()
+          }
+        }, 2000)
+      }
+    } catch (err) {
+      console.error('Erro ao salvar:', err)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  // Fechar modal
-  const handleClose = () => {
-    if (!loading) {
-      onClose()
-    }
-  }
-
+  // Não renderizar se modal não estiver aberto
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-        {/* Cabeçalho com alerta */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 rounded-t-2xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-[#fa4b00]/10 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-[#fa4b00]" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-[#7a5b3e]">
-                  Ocorrência não aeronáutica
-                </h2>
-                <p className="text-sm text-amber-600 mt-1">
-                  ⚠️ Realizar o preenchimento sempre que houver ocorrência.
-                </p>
-              </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <AlertTriangle className="w-6 h-6 text-orange-600" />
             </div>
-            <button
-              onClick={handleClose}
-              disabled={loading}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-            >
-              <X className="w-6 h-6 text-gray-500" />
-            </button>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Nova Ocorrência Não Aeronáutica
+              </h2>
+              <p className="text-sm text-gray-500">
+                Registrar nova ocorrência não aeronáutica
+              </p>
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            disabled={isSubmitting}
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
         </div>
 
-        {/* Conteúdo do formulário */}
-        <div className="px-8 py-6">
-          {/* Mensagem de sucesso */}
-          {showSuccess && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                </div>
-                <p className="text-green-800 font-medium">
-                  Ocorrência registrada com sucesso!
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Mensagem de erro geral */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800">{error}</p>
-            </div>
-          )}
-
-          {/* Erro de sequência de horários */}
-          {validationErrors.sequencia_horarios && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-amber-800">{validationErrors.sequencia_horarios}</p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Seção de Identificação */}
-            <div className="space-y-6">
-              <div className="border-l-4 border-[#fa4b00] pl-4">
-                <h3 className="text-lg font-semibold text-black mb-4">
-                  Identificação
-                </h3>
-              </div>
-
-              {/* Base */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-black mb-2">
-                  <Building2 className="w-4 h-4 text-[#7a5b3e]" />
-                  Base *
-                </label>
-                <select
-                  value={formData.secao_id}
-                  onChange={(e) => updateField('secao_id', e.target.value)}
-                  className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-[#fa4b00] transition-colors ${
-                    validationErrors.secao_id ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="" className="text-gray-600">Selecione uma base</option>
-                  {secoes.map((secao) => (
-                    <option key={secao.id} value={secao.id} className="text-black">
-                      {secao.nome} - {secao.cidade}/{secao.estado}
-                    </option>
-                  ))}
-                </select>
-                {validationErrors.secao_id && (
-                  <p className="text-red-600 text-sm mt-1">{validationErrors.secao_id}</p>
-                )}
-              </div>
-
-              {/* Data da ocorrência */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-black mb-2">
-                  <Calendar className="w-4 h-4 text-[#7a5b3e]" />
-                  Data da ocorrência
-                </label>
-                <input
-                  type="date"
-                  value={formData.data_ocorrencia}
-                  onChange={(e) => updateField('data_ocorrencia', e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
-                  className={`w-full px-4 py-3 text-black border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-[#fa4b00] transition-colors ${
-                    validationErrors.data_ocorrencia ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                  }`}
-                />
-                {validationErrors.data_ocorrencia && (
-                  <p className="text-red-600 text-sm mt-1">{validationErrors.data_ocorrencia}</p>
-                )}
-              </div>
-
-            </div>
-
-            {/* Seção de Classificação */}
-            <div className="space-y-6">
-              <div className="border-l-4 border-[#7a5b3e] pl-4">
-                <h3 className="text-lg font-semibold text-black mb-4">
-                  Classificação
-                </h3>
-              </div>
-
-              {/* Equipe */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-black mb-2">
-                  <Users className="w-4 h-4 text-[#7a5b3e]" />
-                  Equipe * {loading && <span className="text-orange-500">(Carregando...)</span>}
-                </label>
-                <select
-                  value={formData.equipe_id_form}
-                  onChange={(e) => {
-                    console.log('🎯 Equipe selecionada:', e.target.value)
-                    handleEquipeChange(e.target.value)
-                  }}
-                  className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-[#fa4b00] transition-colors ${
-                    validationErrors.equipe_id_form ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                  }`}
-                  disabled={loading || !formData.secao_id}
-                >
-                  <option value="" className="text-gray-600">
-                    {!formData.secao_id 
-                      ? 'Selecione uma base primeiro' 
-                      : loading 
-                        ? 'Carregando equipes...' 
-                        : equipes.length === 0 
-                          ? 'Nenhuma equipe encontrada'
-                          : 'Selecione uma equipe'
-                    }
-                  </option>
-                  {equipes.map((equipe) => (
-                    <option key={equipe.id} value={equipe.id} className="text-black">
-                    {equipe.nome}
-                  </option>
-                  ))}
-                </select>
-                {validationErrors.equipe_id_form && (
-                  <p className="text-red-600 text-sm mt-1">{validationErrors.equipe_id_form}</p>
-                )}
-              </div>
-
-              {/* Tipo de ocorrência */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-black mb-2">
-                  <FileText className="w-4 h-4 text-[#7a5b3e]" />
-                  Tipo de ocorrência
-                </label>
-                <select
-                  value={formData.tipo_ocorrencia}
-                  onChange={(e) => updateField('tipo_ocorrencia', e.target.value)}
-                  className={`w-full px-4 py-3 text-base text-black border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-[#fa4b00] transition-colors ${
-                    validationErrors.tipo_ocorrencia ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="" className="text-gray-600">Selecione o tipo de ocorrência</option>
-                  {tiposOcorrencia.map((tipo) => (
-                    <option key={tipo} value={tipo} className="text-black">
-                      {tipo}
-                    </option>
-                  ))}
-                </select>
-                {validationErrors.tipo_ocorrencia && (
-                  <p className="text-red-600 text-sm mt-1">{validationErrors.tipo_ocorrencia}</p>
-                )}
-              </div>
+        {/* Mensagem de Sucesso */}
+        {showSuccess && (
+          <div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+              <span className="text-green-800 font-medium">
+                Ocorrência salva com sucesso!
+              </span>
             </div>
           </div>
+        )}
 
-          {/* Local da ocorrência - Campo expandido para toda a largura */}
-          <div className="mt-6">
-            <div className="border-l-4 border-[#7a5b3e] pl-4 mb-4">
-              <h3 className="text-lg font-semibold text-black mb-2">
-                Local da Ocorrência
-              </h3>
+        {/* Mensagem de Erro */}
+        {error && (
+          <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-500" />
+              <span className="text-red-800 font-medium">
+                {error}
+              </span>
             </div>
-            
+          </div>
+        )}
+
+        {/* Formulário */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Primeira linha - Base e Data */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-black mb-2">
-                <MapPin className="w-4 h-4 text-[#7a5b3e]" />
-                Local da Ocorrência
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <Building2 className="w-4 h-4 text-orange-600" />
+                Base
               </label>
-              <p className="mb-3 text-sm text-gray-600 leading-relaxed">
-                Preencha o local com a localização pelo mapa de Grade interno (EX: G-11,W-13), com o nome da Taxway ou cabeceira (EX:Taxway T , Cabeceira 14), com O nome da Instalação ou Hangar juntamente com a posição no mapa de grade (EX: Teca: H-14 ou Hangar da Sette; J-23)
-              </p>
+              <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
+                {nomeBase}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="data_ocorrencia" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <Calendar className="w-4 h-4 text-orange-600" />
+                Data da Ocorrência *
+              </label>
               <input
-                type="text"
-                value={formData.local_ocorrencia}
-                onChange={(e) => updateField('local_ocorrencia', e.target.value)}
-                placeholder="Descreva o local específico da ocorrência"
-                className={`w-full px-4 py-3 text-black border rounded-lg focus:ring-2 focus:ring-[#fa4b00] focus:border-[#fa4b00] transition-colors ${
-                  validationErrors.local_ocorrencia ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                id="data_ocorrencia"
+                type="date"
+                value={formData.data_ocorrencia}
+                onChange={(e) => updateField('data_ocorrencia', e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-black ${
+                  validationErrors.data_ocorrencia ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
-              {validationErrors.local_ocorrencia && (
-                <p className="text-red-600 text-sm mt-1">{validationErrors.local_ocorrencia}</p>
+              {validationErrors.data_ocorrencia && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.data_ocorrencia}</p>
               )}
             </div>
           </div>
 
-          {/* Seção de Horários */}
-          <div className="mt-8">
-            <div className="border-l-4 border-[#cdbdae] pl-4 mb-6">
-              <h3 className="text-lg font-semibold text-black mb-2">
-                Horários
-              </h3>
-              <p className="text-sm text-gray-600">
-                Informe os horários no formato HH:MM:SS
-              </p>
+          {/* Segunda linha - Equipe e Tipo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="equipe_id_form" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <Users className="w-4 h-4 text-orange-600" />
+                Equipe *
+              </label>
+              <select
+                id="equipe_id_form"
+                value={formData.equipe_id_form}
+                onChange={(e) => updateField('equipe_id_form', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-black ${
+                  validationErrors.equipe_id_form ? 'border-red-500' : 'border-gray-300'
+                }`}
+                disabled={loading}
+              >
+                <option value="">
+                  {loading ? 'Carregando equipes...' : 'Selecione uma equipe'}
+                </option>
+                {equipes.map((equipe) => (
+                  <option key={equipe.id} value={equipe.id}>
+                    {equipe.nome}
+                  </option>
+                ))}
+              </select>
+              {validationErrors.equipe_id_form && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.equipe_id_form}</p>
+              )}
             </div>
 
+            <div>
+              <label htmlFor="tipo_ocorrencia" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <FileText className="w-4 h-4 text-orange-600" />
+                Tipo de Ocorrência *
+              </label>
+              <select
+                id="tipo_ocorrencia"
+                value={formData.tipo_ocorrencia}
+                onChange={(e) => updateField('tipo_ocorrencia', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-black ${
+                  validationErrors.tipo_ocorrencia ? 'border-red-500' : 'border-gray-300'
+                }`}
+              >
+                <option value="">Selecione o tipo</option>
+                {TIPOS_OCORRENCIA.map((tipo) => (
+                  <option key={tipo} value={tipo}>
+                    {tipo}
+                  </option>
+                ))}
+              </select>
+              {validationErrors.tipo_ocorrencia && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.tipo_ocorrencia}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Local da Ocorrência */}
+          <div>
+            <label htmlFor="local_ocorrencia" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <MapPin className="w-4 h-4 text-orange-600" />
+              Local da Ocorrência *
+            </label>
+            <input
+              id="local_ocorrencia"
+              type="text"
+              value={formData.local_ocorrencia}
+              onChange={(e) => updateField('local_ocorrencia', e.target.value)}
+              placeholder="Digite o local da ocorrência"
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-black ${
+                validationErrors.local_ocorrencia ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {validationErrors.local_ocorrencia && (
+              <p className="mt-1 text-sm text-red-600">{validationErrors.local_ocorrencia}</p>
+            )}
+          </div>
+
+          {/* Horários */}
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-orange-600" />
+              Horários da Ocorrência
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Hora do acionamento */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-black mb-2">
-                  <Clock className="w-4 h-4 text-[#7a5b3e]" />
-                  Hora do acionamento
+                <label htmlFor="hora_acionamento" className="block text-sm font-medium text-gray-700 mb-2">
+                  Hora do Acionamento *
                 </label>
                 <input
+                  id="hora_acionamento"
                   type="text"
                   value={formData.hora_acionamento}
-                  onChange={(e) => handleTimeChange('hora_acionamento', e.target.value)}
+                  onChange={(e) => handleTimeInput('hora_acionamento', e.target.value)}
                   placeholder="HH:MM:SS"
                   maxLength={8}
-                  className={`w-full px-4 py-3 text-black border rounded-lg font-mono focus:ring-2 focus:ring-[#fa4b00] focus:border-[#fa4b00] transition-colors ${
-                    validationErrors.hora_acionamento ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-mono text-black ${
+                    validationErrors.hora_acionamento ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
                 {validationErrors.hora_acionamento && (
-                  <p className="text-red-600 text-sm mt-1">{validationErrors.hora_acionamento}</p>
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.hora_acionamento}</p>
                 )}
               </div>
 
-              {/* Hora de chegada ao local */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-black mb-2">
-                  <Clock className="w-4 h-4 text-[#7a5b3e]" />
-                  Hora de chegada ao local
+                <label htmlFor="hora_chegada" className="block text-sm font-medium text-gray-700 mb-2">
+                  Hora da Chegada *
                 </label>
                 <input
+                  id="hora_chegada"
                   type="text"
                   value={formData.hora_chegada}
-                  onChange={(e) => handleTimeChange('hora_chegada', e.target.value)}
+                  onChange={(e) => handleTimeInput('hora_chegada', e.target.value)}
                   placeholder="HH:MM:SS"
                   maxLength={8}
-                  className={`w-full px-4 py-3 text-black border rounded-lg font-mono focus:ring-2 focus:ring-[#fa4b00] focus:border-[#fa4b00] transition-colors ${
-                    validationErrors.hora_chegada ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-mono text-black ${
+                    validationErrors.hora_chegada ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
                 {validationErrors.hora_chegada && (
-                  <p className="text-red-600 text-sm mt-1">{validationErrors.hora_chegada}</p>
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.hora_chegada}</p>
                 )}
               </div>
 
-              {/* Hora do término */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-black mb-2">
-                  <Clock className="w-4 h-4 text-[#7a5b3e]" />
-                  Hora do término
+                <label htmlFor="hora_termino" className="block text-sm font-medium text-gray-700 mb-2">
+                  Hora do Término *
                 </label>
                 <input
+                  id="hora_termino"
                   type="text"
                   value={formData.hora_termino}
-                  onChange={(e) => handleTimeChange('hora_termino', e.target.value)}
+                  onChange={(e) => handleTimeInput('hora_termino', e.target.value)}
                   placeholder="HH:MM:SS"
                   maxLength={8}
-                  className={`w-full px-4 py-3 text-black border rounded-lg font-mono focus:ring-2 focus:ring-[#fa4b00] focus:border-[#fa4b00] transition-colors ${
-                    validationErrors.hora_termino ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-mono text-black ${
+                    validationErrors.hora_termino ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
                 {validationErrors.hora_termino && (
-                  <p className="text-red-600 text-sm mt-1">{validationErrors.hora_termino}</p>
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.hora_termino}</p>
                 )}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Rodapé com botões */}
-        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-8 py-6 rounded-b-2xl">
-          <div className="flex justify-end gap-4">
+          {/* Botões */}
+          <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
             <button
-              onClick={handleClose}
-              disabled={loading}
-              className="px-8 py-3 text-gray-700 hover:text-gray-900 transition-colors disabled:opacity-50"
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
-              onClick={handleSave}
-              disabled={loading}
-              className="flex items-center justify-center gap-2 px-8 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63d00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
             >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Salvando...
+                </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
@@ -482,7 +450,7 @@ export default function OcorrenciaNaoAeronauticaForm({
               )}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   )

@@ -9,6 +9,7 @@ export function useAuth() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [rememberMe, setRememberMe] = useLocalStorage('rememberMe', false)
 
   // Função para buscar perfil do usuário
@@ -82,23 +83,67 @@ export function useAuth() {
   }
 
   useEffect(() => {
-    // Obter sessão inicial
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session)
-      await updateUserData(session?.user ?? null)
-      setLoading(false)
-    })
+    let timeoutId: NodeJS.Timeout
+
+    const initializeAuth = async () => {
+      try {
+        console.log('🔄 useAuth - Inicializando autenticação...')
+        setError(null)
+        
+        // Timeout de segurança para evitar loading infinito
+        timeoutId = setTimeout(() => {
+          console.error('⏰ useAuth - Timeout na inicialização da autenticação')
+          setError('Timeout na conexão. Verifique sua conexão com a internet.')
+          setLoading(false)
+        }, 15000) // 15 segundos
+
+        // Obter sessão inicial
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          console.error('❌ useAuth - Erro ao obter sessão:', sessionError)
+          setError('Erro ao conectar com o servidor de autenticação.')
+          setLoading(false)
+          return
+        }
+
+        console.log('✅ useAuth - Sessão obtida:', { hasSession: !!session, userId: session?.user?.id })
+        
+        setSession(session)
+        await updateUserData(session?.user ?? null)
+        
+        clearTimeout(timeoutId)
+        setLoading(false)
+      } catch (error) {
+        console.error('❌ useAuth - Erro na inicialização:', error)
+        setError('Erro inesperado na inicialização.')
+        clearTimeout(timeoutId)
+        setLoading(false)
+      }
+    }
+
+    initializeAuth()
 
     // Escutar mudanças de autenticação
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session)
-      await updateUserData(session?.user ?? null)
-      setLoading(false)
+      try {
+        console.log('🔄 useAuth - Mudança de estado de autenticação:', _event)
+        setSession(session)
+        await updateUserData(session?.user ?? null)
+        setLoading(false)
+      } catch (error) {
+        console.error('❌ useAuth - Erro na mudança de estado:', error)
+        setError('Erro ao processar mudança de autenticação.')
+        setLoading(false)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string, remember: boolean = false) => {
@@ -187,6 +232,7 @@ export function useAuth() {
     profile,
     session,
     loading,
+    error,
     rememberMe,
     signIn,
     signUp,

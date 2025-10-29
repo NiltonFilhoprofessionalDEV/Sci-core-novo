@@ -1,10 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js']
-  },
+  // Removido 'standalone' que pode causar problemas na Vercel
+  // Atualizado para Next.js 15+
+  serverExternalPackages: ['@supabase/supabase-js'],
   images: {
     domains: ['localhost'],
     unoptimized: true
@@ -14,7 +13,10 @@ const nextConfig: NextConfig = {
   },
   typescript: {
     ignoreBuildErrors: true
-  }
+  },
+  // Configurações específicas para Vercel
+  trailingSlash: false,
+  poweredByHeader: false
 };
 
 export default nextConfig;

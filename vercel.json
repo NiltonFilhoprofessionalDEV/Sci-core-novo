@@ -1,15 +1,9 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/"
+      "source": "/((?!api|.*\\..*|_next|static|public).*)",
+      "destination": "/index.html"
     }
   ]
 }

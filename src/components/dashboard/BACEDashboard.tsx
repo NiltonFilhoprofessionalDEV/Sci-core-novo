@@ -452,10 +452,7 @@ export function BACEDashboard() {
                 Controle de Agentes Extintores
               </Button>
 
-              <Button className="w-full bg-gray-600 hover:bg-gray-700 text-white justify-start">
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Meus Dados
-              </Button>
+
               <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white justify-start">
                 <FileText className="w-4 h-4 mr-2" />
                 Histórico

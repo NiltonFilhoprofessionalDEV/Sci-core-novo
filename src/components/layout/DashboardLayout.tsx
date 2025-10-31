@@ -139,12 +139,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           active: isActive('/indicadores')
         },
         {
-          icon: BarChart3,
-          label: 'Meus Dados',
-          href: '/meus-dados',
-          active: isActive('/meus-dados')
-        },
-        {
           icon: FileText,
           label: 'Histórico',
           href: '/historico',

@@ -28,6 +28,7 @@ export default function ModalTempoResposta({ isOpen, onClose, onSuccess }: Modal
 
   const {
     loading,
+    loadingEquipes,
     error,
     equipes,
     funcionarios,
@@ -36,8 +37,10 @@ export default function ModalTempoResposta({ isOpen, onClose, onSuccess }: Modal
     saveTempoResposta,
     validateTimeFormat,
     formatTime,
-    setError
-  } = useTempoResposta()
+    setError,
+    getSecaoByUser,
+    isSecoesLoaded
+  } = useTempoResposta(secaoId)
 
   // Estados do formulário
   const [etapaAtual, setEtapaAtual] = useState<'selecao' | 'viaturas'>('selecao')
@@ -66,13 +69,29 @@ export default function ModalTempoResposta({ isOpen, onClose, onSuccess }: Modal
     }
   }, [isOpen, setError])
 
-  // Buscar equipes quando modal abre e há secaoId
+  // Preenchimento automático otimizado quando modal abre
   useEffect(() => {
-    if (isOpen && secaoId) {
-      console.log('🔍 Buscando equipes para secaoId:', secaoId)
+    if (isOpen && isSecoesLoaded) {
+      console.log('📂 Modal Tempo Resposta aberto, preenchimento automático...')
+      
+      // Obter seção do usuário automaticamente
+      const secaoUsuario = getSecaoByUser()
+      
+      if (secaoUsuario?.id && secaoId) {
+        console.log('✅ Seção do usuário identificada:', secaoUsuario.nome)
+        // As equipes já estão disponíveis via contexto
+        console.log('👥 Equipes disponíveis via contexto:', equipes?.length || 0)
+      }
+    }
+  }, [isOpen, isSecoesLoaded, getSecaoByUser, secaoId, equipes])
+
+  // Buscar equipes quando modal abre e há secaoId (agora usa contexto)
+  useEffect(() => {
+    if (isOpen && secaoId && equipes.length === 0) {
+      console.log('🔍 Forçando refresh de equipes para secaoId:', secaoId)
       fetchEquipesBySecao(secaoId)
     }
-  }, [isOpen, secaoId, fetchEquipesBySecao])
+  }, [isOpen, secaoId, fetchEquipesBySecao, equipes.length])
 
   // Buscar funcionários quando equipe é selecionada
   useEffect(() => {
@@ -323,7 +342,7 @@ export default function ModalTempoResposta({ isOpen, onClose, onSuccess }: Modal
                     <Building2 className="w-4 h-4" />
                     Base <span className="text-red-500">*</span>
                   </label>
-                  <div className={`w-full px-4 py-3 border rounded-lg bg-gray-50 text-gray-700 ${
+                  <div className={`w-full px-4 py-3 border rounded-lg bg-gray-50 text-black ${
                     !secaoId ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-300'
                   }`}>
                     {secaoId ? nomeBase : 'Usuário deve ter uma base associada'}
@@ -411,17 +430,17 @@ export default function ModalTempoResposta({ isOpen, onClose, onSuccess }: Modal
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
-                    <span className="font-medium text-gray-700">Base:</span>
+                    <span className="font-medium text-black">Base:</span>
                     <span className="ml-2 text-gray-900">{nomeBase}</span>
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Data:</span>
+                    <span className="font-medium text-black">Data:</span>
                     <span className="ml-2 text-gray-900">
                       {new Date(formData.data_tempo_resposta + 'T00:00:00').toLocaleDateString('pt-BR')}
                     </span>
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Equipe:</span>
+                    <span className="font-medium text-black">Equipe:</span>
                     <span className="ml-2 text-gray-900">
                       {equipes.find(e => e.id === formData.equipe_id)?.nome}
                     </span>
@@ -465,7 +484,7 @@ export default function ModalTempoResposta({ isOpen, onClose, onSuccess }: Modal
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Nome Completo */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-black mb-1">
                           Nome Completo <span className="text-red-500">*</span>
                         </label>
                         <select
@@ -490,7 +509,7 @@ export default function ModalTempoResposta({ isOpen, onClose, onSuccess }: Modal
 
                       {/* Local de Posicionamento */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-black mb-1">
                           Local de Posicionamento <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -510,7 +529,7 @@ export default function ModalTempoResposta({ isOpen, onClose, onSuccess }: Modal
 
                       {/* CCI Utilizado */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-black mb-1">
                           CCI Utilizado <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -530,7 +549,7 @@ export default function ModalTempoResposta({ isOpen, onClose, onSuccess }: Modal
 
                       {/* Tempo de Exercício */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-black mb-1">
                           Tempo de Exercício <span className="text-red-500">*</span>
                         </label>
                         <input

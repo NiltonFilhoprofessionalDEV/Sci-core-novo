@@ -1,20 +1,8 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useSecoes, useEquipesBySecao } from '@/contexts/SecoesContext'
 import { toast } from 'sonner'
-
-interface Equipe {
-  id: string
-  nome: string
-  secao_id: string
-  nome_cidade?: string
-}
-
-interface Secao {
-  id: string
-  nome: string
-  cidade: string
-}
 
 interface ControleTrocasData {
   nome_cidade: string
@@ -27,57 +15,28 @@ interface ControleTrocasData {
   equipe_id?: string
 }
 
-export const useControleTrocas = () => {
+export const useControleTrocas = (secaoId?: string) => {
   const { user } = useAuth()
+  const { secoes, loading: secoesLoading, getSecaoByUser } = useSecoes()
+  const { equipes, loading: equipesLoading, refresh: refreshEquipes } = useEquipesBySecao(secaoId)
   const [loading, setLoading] = useState(false)
-  const [equipes, setEquipes] = useState<Equipe[]>([])
-  const [secoes, setSecoes] = useState<Secao[]>([])
-  const [loadingEquipes, setLoadingEquipes] = useState(false)
 
-  // Buscar seções disponíveis
-  const fetchSecoes = useCallback(async () => {
+  // Função otimizada para buscar equipes por seção (usa o contexto)
+  const fetchEquipesBySecao = useCallback(async (targetSecaoId: string) => {
     try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('secoes')
-        .select('id, nome, cidade')
-        .order('nome');
-
-      if (error) throw error;
-      setSecoes(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar seções:', error);
-      toast.error('Erro ao carregar bases');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Buscar equipes por seção
-  const fetchEquipesBySecao = useCallback(async (secaoId: string) => {
-    try {
-      setLoadingEquipes(true)
-      const { data, error } = await supabase
-        .from('equipes')
-        .select('id, nome, secao_id, nome_cidade')
-        .eq('secao_id', secaoId)
-        .eq('ativa', true)
-        .order('nome')
-
-      if (error) {
-        console.error('Erro ao buscar equipes:', error)
-        throw error
-      }
-
-      setEquipes(data || [])
-      return data || []
+      await refreshEquipes()
+      return equipes
     } catch (error) {
       console.error('Erro ao buscar equipes:', error)
+      toast.error('Erro ao carregar equipes')
       throw error
-    } finally {
-      setLoadingEquipes(false)
     }
-  }, [])
+  }, [refreshEquipes, equipes])
+
+  // Função para obter seção do usuário automaticamente
+  const getSecaoUsuario = useCallback(() => {
+    return getSecaoByUser()
+  }, [getSecaoByUser])
 
   // Validar dados antes de salvar
   const validarDados = (dados: ControleTrocasData): string[] => {
@@ -150,23 +109,20 @@ export const useControleTrocas = () => {
     }
   }, [user?.id])
 
-  // Limpar equipes quando necessário
-  const limparEquipes = useCallback(() => {
-    setEquipes([])
-  }, [])
-
   return {
-    // Estados
-    loading,
-    loadingEquipes,
+    // Estados otimizados
+    loading: loading || secoesLoading,
+    loadingEquipes: equipesLoading,
     equipes,
     secoes,
     
-    // Funções
-    fetchSecoes,
+    // Funções otimizadas
     fetchEquipesBySecao,
     salvarControleTrocas,
-    limparEquipes,
-    validarDados
+    validarDados,
+    getSecaoUsuario,
+    
+    // Estados de cache
+    isSecoesLoaded: secoes.length > 0
   }
 }

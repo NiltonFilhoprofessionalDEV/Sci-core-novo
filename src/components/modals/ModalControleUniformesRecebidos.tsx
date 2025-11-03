@@ -258,7 +258,7 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Base do Usuário */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-black mb-2">
                 <Package className="w-4 h-4 inline mr-2" />
                 Base *
               </label>
@@ -274,7 +274,7 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
 
             {/* Data */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-black mb-2">
                 <Calendar className="w-4 h-4 inline mr-2" />
                 Data *
               </label>
@@ -295,7 +295,7 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
 
           {/* Segunda linha: Equipe */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-black mb-2">
               <Users className="w-4 h-4 inline mr-2" />
               Equipe *
             </label>
@@ -341,25 +341,25 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="border border-gray-300 px-4 py-3 text-left text-sm font-medium text-gray-700">
+                      <th className="border border-gray-300 px-4 py-3 text-left text-sm font-medium text-black">
                         Nome do Funcionário
                       </th>
-                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-700">
+                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-black">
                         EPI Entregue
                       </th>
-                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-700">
+                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-black">
                         EPI Previsto
                       </th>
-                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-700">
+                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-black">
                         Percentual EPI
                       </th>
-                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-700">
+                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-black">
                         Uniforme Entregue
                       </th>
-                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-700">
+                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-black">
                         Uniforme Previsto
                       </th>
-                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-700">
+                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-medium text-black">
                         Percentual Uniforme
                       </th>
                     </tr>
@@ -462,7 +462,7 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
 
           {/* Observações */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-black mb-2">
               <FileText className="w-4 h-4 inline mr-2" />
               Observações
             </label>
@@ -480,7 +480,7 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
               {validationErrors.observacoes && (
                 <p className="text-sm text-red-600">{validationErrors.observacoes}</p>
               )}
-              <p className="text-sm text-gray-500 ml-auto">
+              <p className="text-sm text-gray-900 ml-auto">
                 {formData.observacoes.length}/500 caracteres
               </p>
             </div>
@@ -491,7 +491,7 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
             <button
               type="button"
               onClick={handleClose}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 border border-gray-300 text-black rounded-lg hover:bg-gray-50 transition-colors"
               disabled={loading}
             >
               Cancelar

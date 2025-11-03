@@ -500,7 +500,7 @@ export function ModalControleAgentesExtintores({
                                   value={funcionario.quantidade_estoque_po_quimico}
                                   onChange={(e) => updateFuncionarioControle(funcionario.id, 'quantidade_estoque_po_quimico', parseFloat(e.target.value) || 0)}
                                   disabled={loading || saving}
-                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-black ${
+                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-gray-400 ${
                                     validationErrors[`${funcionario.id}_quantidade_estoque_po_quimico`] 
                                       ? 'border-red-300 bg-red-50' 
                                       : 'border-gray-300 hover:border-gray-400'
@@ -519,7 +519,7 @@ export function ModalControleAgentesExtintores({
                                   value={funcionario.quantidade_estoque_lge}
                                   onChange={(e) => updateFuncionarioControle(funcionario.id, 'quantidade_estoque_lge', parseFloat(e.target.value) || 0)}
                                   disabled={loading || saving}
-                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-black ${
+                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-gray-400 ${
                                     validationErrors[`${funcionario.id}_quantidade_estoque_lge`] 
                                       ? 'border-red-300 bg-red-50' 
                                       : 'border-gray-300 hover:border-gray-400'
@@ -537,7 +537,7 @@ export function ModalControleAgentesExtintores({
                                   value={funcionario.quantidade_estoque_nitrogenio}
                                   onChange={(e) => updateFuncionarioControle(funcionario.id, 'quantidade_estoque_nitrogenio', parseInt(e.target.value) || 0)}
                                   disabled={loading || saving}
-                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-black ${
+                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-gray-400 ${
                                     validationErrors[`${funcionario.id}_quantidade_estoque_nitrogenio`] 
                                       ? 'border-red-300 bg-red-50' 
                                       : 'border-gray-300 hover:border-gray-400'
@@ -556,7 +556,7 @@ export function ModalControleAgentesExtintores({
                                   value={funcionario.quantidade_exigida_po_quimico}
                                   onChange={(e) => updateFuncionarioControle(funcionario.id, 'quantidade_exigida_po_quimico', parseFloat(e.target.value) || 0)}
                                   disabled={loading || saving}
-                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-black ${
+                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-gray-400 ${
                                     validationErrors[`${funcionario.id}_quantidade_exigida_po_quimico`] 
                                       ? 'border-red-300 bg-red-50' 
                                       : 'border-gray-300 hover:border-gray-400'
@@ -575,7 +575,7 @@ export function ModalControleAgentesExtintores({
                                   value={funcionario.quantidade_exigida_lge}
                                   onChange={(e) => updateFuncionarioControle(funcionario.id, 'quantidade_exigida_lge', parseFloat(e.target.value) || 0)}
                                   disabled={loading || saving}
-                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-black ${
+                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-gray-400 ${
                                     validationErrors[`${funcionario.id}_quantidade_exigida_lge`] 
                                       ? 'border-red-300 bg-red-50' 
                                       : 'border-gray-300 hover:border-gray-400'
@@ -593,7 +593,7 @@ export function ModalControleAgentesExtintores({
                                   value={funcionario.quantidade_exigida_nitrogenio}
                                   onChange={(e) => updateFuncionarioControle(funcionario.id, 'quantidade_exigida_nitrogenio', parseInt(e.target.value) || 0)}
                                   disabled={loading || saving}
-                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-black ${
+                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-gray-400 ${
                                     validationErrors[`${funcionario.id}_quantidade_exigida_nitrogenio`] 
                                       ? 'border-red-300 bg-red-50' 
                                       : 'border-gray-300 hover:border-gray-400'
@@ -611,7 +611,7 @@ export function ModalControleAgentesExtintores({
                                   disabled={loading || saving}
                                   placeholder="Observações..."
                                   rows={2}
-                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-black resize-none ${
+                                  className={`w-full px-2 py-1.5 text-sm border rounded focus:ring-1 focus:ring-[#fa4b00] focus:border-transparent transition-all text-black placeholder-gray-400 resize-none ${
                                     validationErrors[`${funcionario.id}_observacoes`] 
                                       ? 'border-red-300 bg-red-50' 
                                       : 'border-gray-300 hover:border-gray-400'

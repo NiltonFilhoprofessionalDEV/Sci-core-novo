@@ -53,13 +53,13 @@ export default function ForgotPasswordPage() {
     <Layout>
       <div className="w-full max-w-md mx-auto bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl p-8">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-[#fa4b00] rounded-full mx-auto mb-6 flex items-center justify-center">
-            <Mail className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-[#1f1f1f] mb-2">
-            Esqueci minha senha
-          </h1>
-          <p className="text-[#7a5b3e]/70">
+          <div className="w-16 h-16 bg-primary rounded-full mx-auto mb-6 flex items-center justify-center">
+          <Mail className="w-8 h-8 text-primary-foreground" />
+        </div>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          Esqueci minha senha
+        </h1>
+        <p className="text-muted-foreground">
             Digite seu email para receber as instruções de recuperação
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function ForgotPasswordPage() {
             </div>
             <Link
               href="/login"
-              className="inline-flex items-center text-[#fa4b00] hover:text-[#fa4b00]/80 transition-colors"
+              className="inline-flex items-center text-primary hover:text-primary/80 transition-colors"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar para o login
@@ -90,16 +90,16 @@ export default function ForgotPasswordPage() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div>
-                <label className="block text-[#1f1f1f] text-sm font-medium mb-2">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#7a5b3e]/50 w-5 h-5" />
-                  <input
-                    {...register('email')}
-                    type="email"
-                    placeholder="seu@email.com"
-                    className="w-full pl-12 pr-4 py-3 bg-white/50 border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#fa4b00]/50 focus:border-[#fa4b00] transition-all duration-300"
+                <label className="block text-foreground text-sm font-medium mb-2">
+              Email
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/50 w-5 h-5" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-background/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-all duration-300"
                   />
                 </div>
                 {errors.email && (
@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-[#fa4b00] to-[#fa4b00]/80 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Enviando...' : 'Enviar instruções'}
               </button>

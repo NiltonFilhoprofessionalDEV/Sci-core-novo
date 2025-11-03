@@ -248,7 +248,7 @@ export default function PreencherIndicadoresPage() {
         <DashboardLayout>
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
-              <AlertTriangle className="w-16 h-16 text-[#fa4b00] mx-auto mb-4" />
+              <AlertTriangle className="w-16 h-16 text-[#ff6600] mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-[#1f1f1f] mb-2">Acesso Restrito</h2>
               <p className="text-[#7a5b3e]/70">Você não tem permissão para preencher indicadores.</p>
             </div>
@@ -263,23 +263,23 @@ export default function PreencherIndicadoresPage() {
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div className="bg-white/20 backdrop-blur-lg border border-white/30 rounded-lg p-6 shadow-sm">
+          <div className="bg-[#f3f4f6] border border-[#e5e7eb] rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Link
                   href="/indicadores"
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  className="p-2 hover:bg-[#e5e7eb] rounded-lg transition-colors"
                 >
                   <ArrowLeft className="w-5 h-5 text-[#1f1f1f]" />
                 </Link>
                 <div>
-                  <h1 className="text-2xl font-bold text-[#1f1f1f]">Preencher Indicadores</h1>
+                  <h1 className="text-2xl font-bold text-gray-700">Preencher Indicadores</h1>
                   <p className="text-[#7a5b3e]/70 text-sm">Selecione um tema para registrar informações</p>
                 </div>
               </div>
               
               <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-[#fa4b00]" />
+                <Target className="w-5 h-5 text-[#ff6600]" />
                 <span className="text-sm text-[#1f1f1f] font-medium">{temas.length} temas disponíveis</span>
               </div>
             </div>
@@ -288,8 +288,8 @@ export default function PreencherIndicadoresPage() {
           {/* Informações de Uso */}
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <div className="p-1 bg-[#fa4b00]/20 rounded-full">
-                <CheckCircle className="w-4 h-4 text-[#fa4b00]" />
+              <div className="p-1 bg-[#ff6600]/20 rounded-full">
+                <CheckCircle className="w-4 h-4 text-[#ff6600]" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-[#1f1f1f] mb-1">Como usar esta página</h3>
@@ -313,15 +313,15 @@ export default function PreencherIndicadoresPage() {
                   className={`
                     relative cursor-pointer group transition-all duration-200 
                     ${isSelected 
-                      ? 'bg-white/30 backdrop-blur-lg border-2 border-[#fa4b00] shadow-lg scale-105' 
-                      : 'bg-white/20 backdrop-blur-lg border border-white/30 hover:shadow-md hover:scale-102 hover:bg-white/25'
+                      ? 'bg-[#ff6600] text-white border-2 border-[#ff6600] shadow-lg scale-105' 
+                      : 'bg-[#f3f4f6] border border-[#e5e7eb] hover:shadow-md hover:scale-[1.02] hover:bg-[#eceff3]'
                     }
                     rounded-lg p-4
                   `}
                 >
                   {/* Indicador de Seleção */}
                   {isSelected && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-[#fa4b00] rounded-full flex items-center justify-center shadow-sm">
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-[#ff6600] rounded-full flex items-center justify-center shadow-sm">
                       <CheckCircle className="w-4 h-4 text-white" />
                     </div>
                   )}
@@ -329,38 +329,37 @@ export default function PreencherIndicadoresPage() {
                   {/* Conteúdo do Card */}
                   <div className="space-y-3">
                     <div className="flex items-start justify-between">
-                      <div className={`p-2 rounded-lg ${isSelected ? 'bg-[#fa4b00]/20' : 'bg-white/20'} backdrop-blur-sm`}>
-                        <IconComponent className={`w-6 h-6 ${isSelected ? 'text-[#fa4b00]' : tema.color}`} />
+                      <div className={`p-2 rounded-lg ${isSelected ? 'bg-white/20' : 'bg-[#e5e7eb]'}`}>
+                        <IconComponent className={`w-6 h-6 ${isSelected ? 'text-white' : 'text-[#ff6600]'}`} />
                       </div>
-                      <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isSelected ? 'rotate-90 text-[#fa4b00]' : 'group-hover:translate-x-1 text-[#7a5b3e]/50'}`} />
+                      <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isSelected ? 'rotate-90 text-white' : 'group-hover:translate-x-1 text-[#ff6600]'}`} />
                     </div>
 
                     <div>
-                      <h3 className={`font-semibold text-sm mb-1 ${isSelected ? 'text-[#1f1f1f]' : 'text-[#1f1f1f]'}`}>
+                      <h3 className={`font-semibold text-sm mb-1 ${isSelected ? 'text-white' : 'text-[#1f1f1f]'}`}>
                         {tema.nome}
                       </h3>
-                      <p className="text-xs text-[#7a5b3e]/70 leading-relaxed">
+                      <p className={`text-xs leading-relaxed ${isSelected ? 'text-white/90' : 'text-[#7a5b3e]/80'}`}>
                         {tema.descricao}
                       </p>
                     </div>
 
                     {/* Status/Ação */}
-                    <div className="pt-2 border-t border-white/20">
+                    <div className={`pt-2 border-t ${isSelected ? 'border-white/30' : 'border-[#e5e7eb]'}`}>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-[#7a5b3e]/60">
+                        <span className={`text-xs ${isSelected ? 'text-white/90' : 'text-[#7a5b3e]/70'}`}>
                           {isSelected ? 'Selecionado' : 'Clique para selecionar'}
                         </span>
                         {isSelected && (
-                          <Button
-                            size="sm"
-                            className="text-xs px-3 py-1 bg-[#fa4b00] hover:bg-[#e63d00] text-white transition-colors"
+                          <button
+                            className="text-xs px-3 py-1 rounded-md bg-white text-black hover:bg-white/90 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation()
                               handlePreencherClick(tema)
                             }}
                           >
                             Preencher
-                          </Button>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -378,7 +377,7 @@ export default function PreencherIndicadoresPage() {
                 <div className="text-sm text-[#7a5b3e]/70">Temas Disponíveis</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-[#fa4b00]">1</div>
+                <div className="text-2xl font-bold text-[#ff6600]">1</div>
                 <div className="text-sm text-[#7a5b3e]/70">Layout Unificado</div>
               </div>
               <div>

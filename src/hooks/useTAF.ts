@@ -1,19 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useSecoes, useEquipesBySecao } from '@/contexts/SecoesContext';
 import { toast } from 'sonner';
-
-export interface Secao {
-  id: string;
-  nome: string;
-  cidade: string;
-}
-
-export interface Equipe {
-  id: string;
-  nome: string;
-  secao_id: string;
-  nome_cidade: string;
-}
 
 export interface Funcionario {
   id: string;
@@ -37,51 +25,24 @@ export interface TAFRegistro {
   resultados: TAFResultado[];
 }
 
-export const useTAF = () => {
-  const [secoes, setSecoes] = useState<Secao[]>([]);
-  const [equipes, setEquipes] = useState<Equipe[]>([]);
+export const useTAF = (secaoId?: string) => {
+  const { secoes, loading: secoesLoading, getSecaoByUser } = useSecoes();
+  const { equipes, loading: equipesLoading, refresh: refreshEquipes } = useEquipesBySecao(secaoId);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Buscar seções disponíveis
-  const fetchSecoes = useCallback(async () => {
+  // Função otimizada para buscar equipes por seção (usa o contexto)
+  const fetchEquipesPorSecao = useCallback(async (targetSecaoId: string) => {
     try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('secoes')
-        .select('id, nome, cidade')
-        .order('nome');
-
-      if (error) throw error;
-      setSecoes(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar seções:', error);
-      toast.error('Erro ao carregar bases');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Buscar equipes por seção
-  const fetchEquipesPorSecao = useCallback(async (secaoId: string) => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('equipes')
-        .select('id, nome, secao_id, nome_cidade')
-        .eq('secao_id', secaoId)
-        .order('nome');
-
-      if (error) throw error;
-      setEquipes(data || []);
+      await refreshEquipes();
+      return equipes;
     } catch (error) {
       console.error('Erro ao buscar equipes:', error);
       toast.error('Erro ao carregar equipes');
-    } finally {
-      setLoading(false);
+      throw error;
     }
-  }, []);
+  }, [refreshEquipes, equipes]);
 
   // Buscar funcionários por equipe
   const fetchFuncionariosPorEquipe = useCallback(async (equipeId: string) => {
@@ -245,22 +206,24 @@ export const useTAF = () => {
     }
   };
 
-  // Inicializar dados
-  useEffect(() => {
-    fetchSecoes();
-  }, []);
-
   return {
+    // Estados otimizados
     secoes,
     equipes,
     funcionarios,
-    loading,
+    loading: loading || secoesLoading,
+    loadingEquipes: equipesLoading,
     saving,
-    fetchSecoes,
+    
+    // Funções otimizadas
     fetchEquipesPorSecao,
     fetchFuncionariosPorEquipe,
     calcularDesempenho,
     validarTempo,
-    salvarTAF
+    salvarTAF,
+    getSecaoByUser,
+    
+    // Estados de cache
+    isSecoesLoaded: secoes.length > 0
   };
 };

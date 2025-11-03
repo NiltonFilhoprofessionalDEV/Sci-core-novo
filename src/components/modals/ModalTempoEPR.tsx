@@ -142,7 +142,7 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">Tempo EPR</h2>
-              <p className="text-sm text-gray-600">Registro de tempos de Equipamento de Proteção Respiratória</p>
+              <p className="text-sm text-black">Registro de tempos de Equipamento de Proteção Respiratória</p>
             </div>
           </div>
           <button
@@ -193,7 +193,7 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
                     <Building2 className="w-4 h-4" />
                     Base <span className="text-red-500">*</span>
                   </label>
-                  <div className={`w-full px-4 py-3 border rounded-lg bg-gray-50 text-gray-700 ${
+                  <div className={`w-full px-4 py-3 border rounded-lg bg-gray-50 text-black ${
                     !secaoId ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-300'
                   }`}>
                     {secaoId ? nomeBase : 'Usuário deve ter uma base associada'}
@@ -289,19 +289,19 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
-                    <span className="font-medium text-gray-700">Base:</span>
+                    <span className="font-medium text-black">Base:</span>
                     <span className="ml-2 text-gray-900">
                       {nomeBase}
                     </span>
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Data:</span>
+                    <span className="font-medium text-black">Data:</span>
                     <span className="ml-2 text-gray-900">
                       {new Date(dataSelecionada + 'T00:00:00').toLocaleDateString('pt-BR')}
                     </span>
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Equipe:</span>
+                    <span className="font-medium text-black">Equipe:</span>
                     <span className="ml-2 text-gray-900">
                       {equipes.find(e => e.id === equipeSelecionada)?.nome}
                     </span>
@@ -395,7 +395,7 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
                   </div>
 
                   {/* Legenda de campos obrigatórios */}
-                  <div className="flex items-center gap-1 text-xs text-gray-600 mt-2">
+                  <div className="flex items-center gap-1 text-xs text-black mt-2">
                     <span className="text-red-500">*</span>
                     <span>Campos obrigatórios</span>
                   </div>

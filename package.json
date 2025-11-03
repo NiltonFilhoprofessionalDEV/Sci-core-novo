@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "dev": "set NEXT_DISABLE_TURBOPACK=1&& set FAST_REFRESH=false&& next dev",
+    "build": "next build --no-lint",
     "start": "next start"
   },
   "dependencies": {

@@ -1,30 +1,41 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthContext } from '@/contexts/AuthContext'
 
 export default function Home() {
   const { user, loading, error } = useAuthContext()
   const router = useRouter()
+  const hasRedirected = useRef(false)
 
   useEffect(() => {
+    // Evita redirecionamentos múltiplos
+    if (hasRedirected.current || loading) return
+    
     console.log('🏠 Home - Estado atual:', { user: !!user, loading, error })
     
-    if (!loading && !error) {
-      if (user) {
-        console.log('🏠 Home - Redirecionando para dashboard')
-        router.push('/dashboard')
-      } else {
-        console.log('🏠 Home - Redirecionando para login')
-        router.push('/login')
-      }
+    if (!error) {
+      hasRedirected.current = true
+      
+      // Usar setTimeout para evitar problemas de HMR
+      const timeoutId = setTimeout(() => {
+        if (user) {
+          console.log('🏠 Home - Redirecionando para dashboard')
+          router.replace('/dashboard')
+        } else {
+          console.log('🏠 Home - Redirecionando para login')
+          router.replace('/login')
+        }
+      }, 100)
+      
+      return () => clearTimeout(timeoutId)
     }
   }, [user, loading, error, router])
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#7a5b3e] via-[#cdbdae] to-[#fafafa] flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full mx-4">
           <div className="text-red-600 text-center mb-4">
             <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -46,7 +57,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#7a5b3e] via-[#cdbdae] to-[#fafafa] flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-white text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <div className="text-xl">Carregando...</div>

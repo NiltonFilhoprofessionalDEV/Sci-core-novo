@@ -26,7 +26,6 @@ export function ModalControleTrocas({
   onSuccess 
 }: ModalControleTrocasProps) {
   const { user } = useAuth()
-  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
   const secaoId = user?.profile?.secao?.id
 
   const {
@@ -34,11 +33,11 @@ export function ModalControleTrocas({
     equipes,
     loading,
     loadingEquipes,
-    fetchSecoes,
     fetchEquipesBySecao,
     salvarControleTrocas,
-    limparEquipes
-  } = useControleTrocas()
+    getSecaoUsuario,
+    isSecoesLoaded
+  } = useControleTrocas(secaoId)
 
   // Estado do formulário
   const [formData, setFormData] = useState<FormData>({
@@ -63,12 +62,17 @@ export function ModalControleTrocas({
     user: user?.email
   })
 
-  // Resetar formulário quando modal abre
+  // Resetar formulário quando modal abre com preenchimento automático otimizado
   useEffect(() => {
-    if (isOpen) {
-      console.log('📂 Modal Controle de Trocas aberto, resetando formulário...')
+    if (isOpen && isSecoesLoaded) {
+      console.log('📂 Modal Controle de Trocas aberto, preenchimento automático...')
+      
+      // Obter seção do usuário automaticamente
+      const secaoUsuario = getSecaoUsuario()
+      const baseId = secaoUsuario?.id || secaoId || ''
+      
       setFormData({
-        base_id: secaoId || '',
+        base_id: baseId,
         equipe_id: '',
         data: '',
         quantidade_troca: '',
@@ -77,40 +81,19 @@ export function ModalControleTrocas({
       setValidationErrors({})
       setSaving(false)
       
-      // Carregar seções
-      fetchSecoes()
+      console.log('✅ Base preenchida automaticamente:', secaoUsuario?.nome || 'Não encontrada')
     }
-  }, [isOpen, fetchSecoes, secaoId])
+  }, [isOpen, isSecoesLoaded, getSecaoUsuario, secaoId])
 
-  // Definir base automaticamente quando o modal abrir
-  useEffect(() => {
-    if (isOpen && secaoId && !formData.base_id) {
-      setFormData(prev => ({ ...prev, base_id: secaoId }))
-    }
-  }, [isOpen, secaoId, formData.base_id])
-
-  // Buscar equipes quando base mudar
+  // Buscar equipes quando base mudar (otimizado com contexto)
   useEffect(() => {
     if (formData.base_id) {
-      console.log('👥 Base selecionada, carregando equipes para:', formData.base_id)
+      console.log('👥 Base selecionada, equipes já disponíveis no contexto:', formData.base_id)
       
-      const loadEquipes = async () => {
-        try {
-          await fetchEquipesBySecao(formData.base_id)
-        } catch (error) {
-          console.error('❌ Erro ao carregar equipes:', error)
-          toast.error('Erro ao carregar equipes. Tente novamente.')
-        }
-      }
-      
-      loadEquipes()
-      
-      // Limpar equipe selecionada
+      // Limpar equipe selecionada quando base muda
       setFormData(prev => ({ ...prev, equipe_id: '' }))
-    } else {
-      limparEquipes()
     }
-  }, [formData.base_id, fetchEquipesBySecao, limparEquipes])
+  }, [formData.base_id])
 
   // Atualizar campo do formulário
   const updateField = (field: keyof FormData, value: string) => {

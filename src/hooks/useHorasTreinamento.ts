@@ -1,13 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase, withRetry, checkConnection } from '@/lib/supabase';
 import { toast } from 'sonner';
-
-export interface Equipe {
-  id: string;
-  nome: string;
-  secao_id: string;
-  nome_cidade: string;
-}
+import { useSecoes, useEquipesBySecao } from '@/contexts/SecoesContext';
 
 export interface Funcionario {
   id: string;
@@ -29,68 +23,22 @@ export interface HorasTreinamentoRegistro {
   resultados: HorasTreinamentoResultado[];
 }
 
-export function useHorasTreinamento() {
-  const [equipes, setEquipes] = useState<Equipe[]>([]);
+export function useHorasTreinamento(secaoId?: string) {
+  const { secoes, loading: secoesLoading, getSecaoByUser, isSecoesLoaded } = useSecoes();
+  const { equipes, loading: equipesLoading, refresh } = useEquipesBySecao(secaoId);
+  
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Buscar equipes por seção
+  // Buscar equipes por seção (agora usa o contexto otimizado)
   const fetchEquipesPorSecao = useCallback(async (secaoId: string) => {
-    try {
-      setLoading(true);
-      console.log('👥 Buscando equipes para seção:', secaoId);
-      
-      // Verificar conectividade antes de fazer a requisição
-      const isConnected = await checkConnection();
-      if (!isConnected) {
-        throw new Error('Sem conexão com o servidor. Verifique sua conexão com a internet.');
-      }
-
-      // Usar retry logic para a requisição
-      const { data, error } = await withRetry(async () => {
-        return await supabase
-          .from('equipes')
-          .select('id, nome, secao_id, nome_cidade')
-          .eq('secao_id', secaoId)
-          .order('nome');
-      }, 3, 1000);
-
-      if (error) {
-        console.error('❌ Erro ao buscar equipes:', error);
-        
-        // Mensagens de erro mais específicas
-        if (error.message.includes('Failed to fetch')) {
-          toast.error('Erro de conexão. Verifique sua internet e tente novamente.');
-        } else if (error.message.includes('timeout')) {
-          toast.error('Tempo limite excedido. Tente novamente.');
-        } else {
-          toast.error('Erro ao carregar equipes');
-        }
-        return;
-      }
-
-      console.log('✅ Equipes carregadas:', data?.length || 0);
-      setEquipes(data || []);
-    } catch (error) {
-      console.error('❌ Erro inesperado ao buscar equipes:', error);
-      
-      // Tratamento de erro mais específico
-      if (error instanceof Error) {
-        if (error.message.includes('Sem conexão')) {
-          toast.error(error.message);
-        } else if (error.message.includes('Failed to fetch') || error.message.includes('ERR_')) {
-          toast.error('Problema de conexão. Verifique sua internet e tente novamente.');
-        } else {
-          toast.error('Erro inesperado ao carregar equipes');
-        }
-      } else {
-        toast.error('Erro inesperado ao carregar equipes');
-      }
-    } finally {
-      setLoading(false);
+    console.log('👥 Equipes disponíveis via contexto para seção:', secaoId, equipes?.length || 0);
+    // As equipes já estão disponíveis via contexto, apenas força refresh se necessário
+    if (secaoId && equipes.length === 0) {
+      await refresh();
     }
-  }, []);
+  }, [equipes, refresh]);
 
   // Buscar funcionários por equipe
   const fetchFuncionariosPorEquipe = useCallback(async (equipeId: string) => {
@@ -312,17 +260,21 @@ export function useHorasTreinamento() {
   }, []);
 
   return {
-    // Estados
+    // Estados otimizados
+    secoes,
     equipes,
     funcionarios,
-    loading,
+    loading: secoesLoading || equipesLoading || loading,
+    loadingEquipes: equipesLoading,
     saving,
     
-    // Funções
+    // Funções otimizadas
     fetchEquipesPorSecao,
     fetchFuncionariosPorEquipe,
     validarHoras,
     verificarDuplicatas,
-    salvarHorasTreinamento
+    salvarHorasTreinamento,
+    getSecaoByUser,
+    isSecoesLoaded
   };
 }

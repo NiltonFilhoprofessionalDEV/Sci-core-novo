@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
+import { useSecoes, useEquipesBySecao } from '@/contexts/SecoesContext';
 
 export interface TempoRespostaData {
   id?: string;
@@ -32,42 +33,24 @@ export interface Funcionario {
   equipe_id: string;
 }
 
-export interface Equipe {
-  id: string;
-  nome: string;
-  nome_cidade: string;
-  secao_id: string;
-}
-
-export const useTempoResposta = () => {
+export const useTempoResposta = (secaoId?: string) => {
   const { user, profile } = useAuth();
+  const { secoes, loading: secoesLoading, getSecaoByUser, isSecoesLoaded } = useSecoes();
+  const { equipes, loading: equipesLoading, refresh } = useEquipesBySecao(secaoId);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [secoes, setSecoes] = useState<any[]>([]);
-  const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
 
-  // Buscar equipes por seção
+  // Buscar equipes por seção (agora usa o contexto otimizado)
   const fetchEquipesBySecao = useCallback(async (secaoId: string) => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('equipes')
-        .select('id, nome, nome_cidade, secao_id')
-        .eq('secao_id', secaoId)
-        .order('nome');
-
-      if (error) throw error;
-      setEquipes(data || []);
-      return data || [];
-    } catch (err) {
-      console.error('Erro ao buscar equipes:', err);
-      setError('Erro ao carregar equipes');
-      return [];
-    } finally {
-      setLoading(false);
+    console.log('👥 Equipes disponíveis via contexto para seção:', secaoId, equipes?.length || 0);
+    // As equipes já estão disponíveis via contexto, apenas força refresh se necessário
+    if (secaoId && equipes.length === 0) {
+      await refresh();
     }
-  }, []);
+    return equipes || [];
+  }, [equipes, refresh]);
 
   // Buscar funcionários por equipe
   const fetchFuncionariosByEquipe = useCallback(async (equipeId: string) => {
@@ -204,17 +187,23 @@ export const useTempoResposta = () => {
   };
 
   return {
-    loading,
+    // Estados otimizados
+    loading: secoesLoading || equipesLoading || loading,
+    loadingEquipes: equipesLoading,
     error,
     secoes,
     equipes,
     funcionarios,
+    
+    // Funções otimizadas
     fetchEquipesBySecao,
     fetchFuncionariosByEquipe,
     saveTempoResposta,
     fetchTempoResposta,
     validateTimeFormat,
     formatTime,
-    setError
+    setError,
+    getSecaoByUser,
+    isSecoesLoaded
   };
 };

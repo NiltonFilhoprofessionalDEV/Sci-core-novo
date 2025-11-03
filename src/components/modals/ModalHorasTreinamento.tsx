@@ -31,8 +31,10 @@ export function ModalHorasTreinamento({
     fetchFuncionariosPorEquipe,
     validarHoras,
     verificarDuplicatas,
-    salvarHorasTreinamento
-  } = useHorasTreinamento()
+    salvarHorasTreinamento,
+    getSecaoByUser,
+    isSecoesLoaded
+  } = useHorasTreinamento(secaoId)
 
   // Aplicar máscara de tempo HH:MM:SS
   const applyTimeMask = (value: string): string => {
@@ -116,48 +118,35 @@ export function ModalHorasTreinamento({
     }
   }, [isOpen, secaoId])
 
-  // Preencher automaticamente a base quando disponível
+  // Preenchimento automático otimizado da base quando modal abre
   useEffect(() => {
-    if (isOpen && secaoId && formData.secao_id !== secaoId) {
-      setFormData(prev => ({
-        ...prev,
-        secao_id: secaoId
-      }))
+    if (isOpen && isSecoesLoaded) {
+      console.log('📂 Modal Horas Treinamento aberto, preenchimento automático...')
+      
+      // Obter seção do usuário automaticamente
+      const secaoUsuario = getSecaoByUser()
+      const baseId = secaoUsuario?.id || secaoId || ''
+      
+      if (baseId && formData.secao_id !== baseId) {
+        setFormData(prev => ({
+          ...prev,
+          secao_id: baseId
+        }))
+        console.log('✅ Base preenchida automaticamente:', secaoUsuario?.nome || 'Não encontrada')
+      }
     }
-  }, [isOpen, secaoId, formData.secao_id])
+  }, [isOpen, isSecoesLoaded, getSecaoByUser, secaoId, formData.secao_id])
 
-  // Buscar equipes quando seção mudar
+  // Limpar dados quando seção mudar (equipes já estão no contexto)
   useEffect(() => {
     if (formData.secao_id) {
-      console.log('👥 Seção selecionada, carregando equipes para:', formData.secao_id)
+      console.log('👥 Seção selecionada, equipes já disponíveis no contexto:', formData.secao_id)
       
-      // Tentar carregar equipes com fallback
-      const loadEquipes = async () => {
-        try {
-          await fetchEquipesPorSecao(formData.secao_id)
-        } catch (error) {
-          console.error('❌ Erro ao carregar equipes, usando fallback:', error)
-          // Fallback: mostrar mensagem amigável e permitir retry manual
-          toast.error('Erro ao carregar equipes. Clique aqui para tentar novamente.', {
-            action: {
-              label: 'Tentar novamente',
-              onClick: () => {
-                console.log('🔄 Tentando carregar equipes novamente...')
-                fetchEquipesPorSecao(formData.secao_id)
-              }
-            },
-            duration: 10000 // Toast fica visível por mais tempo
-          })
-        }
-      }
-      
-      loadEquipes()
-      
-      // Limpar equipe selecionada e funcionários
+      // Limpar equipe selecionada e funcionários quando base muda
       setFormData(prev => ({ ...prev, equipe_id: '' }))
       setResultados([])
     }
-  }, [formData.secao_id, fetchEquipesPorSecao])
+  }, [formData.secao_id])
 
   // Buscar funcionários quando equipe mudar
   useEffect(() => {

@@ -48,8 +48,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const handleLogout = async () => {
-    await signOut()
-    router.push('/login')
+    try {
+      // Tentar fazer logout no Supabase
+      await signOut()
+    } catch (error) {
+      // Se falhar, apenas log o erro mas continue com o logout local
+      console.warn('Erro ao fazer logout no servidor:', error)
+    } finally {
+      // Usar replace para evitar problemas de navegação e limpar histórico
+      router.replace('/login')
+    }
   }
 
   // Navegação baseada no perfil
@@ -153,13 +161,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigationItems = getNavigationItems()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#7a5b3e] via-[#cdbdae] to-[#fafafa]">
+    <div className="min-h-screen bg-white">
       {/* Sidebar */}
-      <div className="fixed left-0 top-0 h-full w-64 bg-white/10 backdrop-blur-lg border-r border-white/20 z-40">
+      <div className="fixed left-0 top-0 h-full w-64 bg-[#f3f4f6] border-r border-[#e5e7eb] shadow-sm z-40">
         <div className="p-6">
           {/* Logo e Título */}
           <div className="flex items-center space-x-3 mb-8">
-            <div className="w-10 h-10 bg-[#fa4b00] rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-[#ff6600] rounded-lg flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -170,9 +178,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* Informações do Usuário */}
           {userInfo && (
-            <div className="bg-white/20 rounded-lg p-4 mb-6">
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-[#fa4b00] rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-[#ff6600] rounded-full flex items-center justify-center">
                   <User className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -198,14 +206,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <a
                   key={index}
                   href={item.href}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors border-l-2 ${
                     item.active
-                      ? 'text-[#1f1f1f] bg-white/20'
-                      : 'text-[#1f1f1f]/70 hover:text-[#1f1f1f] hover:bg-white/20'
+                      ? 'text-white bg-[#ff6600] border-[#ff6600]'
+                      : 'text-[#1f1f1f]/80 hover:text-[#1f1f1f] hover:bg-orange-50/50 border-transparent'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
-                  <span className="text-sm">{item.label}</span>
+                  <Icon className={`w-5 h-5 ${item.active ? 'text-white' : ''}`} />
+                  <span className={`text-sm ${item.active ? 'text-white' : ''}`}>{item.label}</span>
                 </a>
               )
             })}
@@ -228,26 +236,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content */}
       <div className="ml-64">
         {/* Header */}
-        <div className="bg-white/10 backdrop-blur-lg border-b border-white/20 px-8 py-4">
+        <div className="bg-[#ff6600] text-white shadow-sm px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-[#1f1f1f]">
+              <h1 className="text-2xl font-bold text-white">
                 Sistema de Indicadores
               </h1>
-              <p className="text-[#7a5b3e]/70 text-sm">
+              <p className="text-white/80 text-sm">
                 Grupo MedMais - Seções de Bombeiro de Aeródromo
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
-                <Bell className="w-5 h-5 text-[#1f1f1f]" />
+              <button className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
+                <Bell className="w-5 h-5 text-white" />
               </button>
               {userInfo && (
                 <div className="text-right">
-                  <p className="text-sm font-medium text-[#1f1f1f]">
+                  <p className="text-sm font-medium text-white">
                     {userInfo.perfil}
                   </p>
-                  <p className="text-xs text-[#1f1f1f]/60">
+                  <p className="text-xs text-white/80">
                     {userInfo.contexto}
                   </p>
                 </div>

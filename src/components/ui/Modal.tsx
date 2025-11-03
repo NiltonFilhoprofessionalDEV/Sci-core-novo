@@ -144,14 +144,14 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
           <button
             onClick={onClose}
             className={`
-              p-3 hover:bg-[#fa4b00]/10 rounded-xl border border-transparent
-              hover:border-[#fa4b00]/20 transition-all duration-200 ease-out
-              focus:outline-none focus:ring-2 focus:ring-[#fa4b00] focus:ring-offset-2
+              p-3 hover:bg-[#ff6600]/10 rounded-xl border border-transparent
+              hover:border-[#ff6600]/20 transition-all duration-200 ease-out
+              focus:outline-none focus:ring-2 focus:ring-[#ff6600] focus:ring-offset-2
               hover:scale-105 active:scale-95 group
             `}
             aria-label="Fechar modal"
           >
-            <X className="w-5 h-5 text-[#7a5b3e] group-hover:text-[#fa4b00] transition-colors duration-200" />
+            <X className="w-5 h-5 text-[#7a5b3e] group-hover:text-[#ff6600] transition-colors duration-200" />
           </button>
         </div>
 
@@ -172,7 +172,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
               <div className="flex items-center justify-center h-full min-h-[300px]">
                 <div className="text-center">
                   <div className="w-20 h-20 bg-gradient-to-br from-[#cdbdae]/20 to-[#7a5b3e]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg border border-[#cdbdae]/30">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#fa4b00]/20 to-[#7a5b3e]/20 rounded-xl"></div>
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#ff6600]/20 to-[#7a5b3e]/20 rounded-xl"></div>
                   </div>
                   <h3 className="text-xl font-semibold text-[#7a5b3e] mb-3 tracking-tight">
                     Conteúdo em desenvolvimento

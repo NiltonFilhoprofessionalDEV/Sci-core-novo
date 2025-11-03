@@ -56,21 +56,21 @@ export default function LoginPage() {
       <div className="w-full max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl overflow-hidden">
         <div className="flex min-h-[600px]">
           {/* Lado esquerdo - Boas-vindas */}
-          <div className="flex-1 bg-gradient-to-br from-[#7a5b3e]/90 to-[#cdbdae]/90 p-12 flex flex-col justify-center relative overflow-hidden">
+          <div className="flex-1 bg-white p-12 flex flex-col justify-center relative overflow-hidden">
             {/* Elementos geométricos abstratos */}
-            <div className="absolute top-10 left-10 w-20 h-20 bg-[#fa4b00]/20 rounded-full blur-xl"></div>
+            <div className="absolute top-10 left-10 w-20 h-20 bg-[#ff6600]/20 rounded-full blur-xl"></div>
             <div className="absolute top-32 right-16 w-16 h-16 bg-white/10 rotate-45"></div>
-            <div className="absolute bottom-20 left-20 w-12 h-12 bg-[#fa4b00]/30 rounded-full"></div>
+            <div className="absolute bottom-20 left-20 w-12 h-12 bg-[#ff6600]/30 rounded-full"></div>
             <div className="absolute bottom-32 right-12 w-24 h-24 bg-white/5 rotate-12"></div>
             
             <div className="relative z-10">
               <div className="mb-8">
-                <div className="w-12 h-12 bg-[#fa4b00] rounded-lg mb-6 flex items-center justify-center">
+                <div className="w-12 h-12 bg-[#ff6600] rounded-lg mb-6 flex items-center justify-center">
                   <div className="w-6 h-6 bg-white rounded-sm"></div>
                 </div>
               </div>
               
-              <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
+              <h1 className="text-5xl font-bold text-[#ff6600] mb-6 leading-tight">
                 Bem-vindo!
               </h1>
               
@@ -104,7 +104,8 @@ export default function LoginPage() {
                       {...register('email')}
                       type="email"
                       placeholder="seu@email.com"
-                      className="w-full pl-12 pr-4 py-3 bg-white/50 border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#fa4b00]/50 focus:border-[#fa4b00] transition-all duration-300 text-black placeholder:text-[#7a5b3e]/60"
+                      className="w-full pl-12 pr-4 py-3 bg-white border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff6600]/50 focus:border-[#ff6600] transition-all duration-300 !text-black placeholder:text-[#7a5b3e]/60"
+                      style={{ color: '#000000' }}
                     />
                   </div>
                   {errors.email && (
@@ -123,7 +124,8 @@ export default function LoginPage() {
                       {...register('password')}
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      className="w-full pl-12 pr-12 py-3 bg-white/50 border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#fa4b00]/50 focus:border-[#fa4b00] transition-all duration-300 text-black placeholder:text-[#7a5b3e]/60"
+                      className="w-full pl-12 pr-12 py-3 bg-white border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff6600]/50 focus:border-[#ff6600] transition-all duration-300 !text-black placeholder:text-[#7a5b3e]/60"
+                      style={{ color: '#000000' }}
                     />
                     <button
                       type="button"
@@ -144,13 +146,13 @@ export default function LoginPage() {
                     <input
                       {...register('rememberMe')}
                       type="checkbox"
-                      className="w-4 h-4 text-[#fa4b00] bg-white/50 border-[#cdbdae]/30 rounded focus:ring-[#fa4b00]/50 focus:ring-2"
+                      className="w-4 h-4 text-[#ff6600] bg-white/50 border-[#cdbdae]/30 rounded focus:ring-[#ff6600]/50 focus:ring-2"
                     />
                     <span className="ml-2 text-sm text-black">Lembrar-me</span>
                   </label>
                   <a
                     href="/forgot-password"
-                    className="text-sm text-[#fa4b00] hover:text-[#fa4b00]/80 transition-colors"
+                    className="text-sm text-[#ff6600] hover:text-[#ff6600]/80 transition-colors"
                   >
                     Esqueci minha senha
                   </a>
@@ -160,7 +162,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-[#fa4b00] to-[#fa4b00]/80 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#ff6600] hover:bg-[#ff6600]/90 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? 'Entrando...' : 'Entrar'}
                 </button>

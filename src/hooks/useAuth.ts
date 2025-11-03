@@ -70,10 +70,14 @@ export function useAuth() {
 
       // Atualizar last_login se perfil existe
       if (userProfile) {
-        await supabase
-          .from('profiles')
-          .update({ last_login: new Date().toISOString() })
-          .eq('id', authUser.id)
+        try {
+          await supabase
+            .from('profiles')
+            .update({ last_login: new Date().toISOString() })
+            .eq('id', authUser.id)
+        } catch (error) {
+          console.warn('⚠️ useAuth - Erro ao atualizar last_login:', error)
+        }
       }
     } else {
       console.log('🚪 useAuth - Usuário deslogado, limpando dados')
@@ -84,22 +88,38 @@ export function useAuth() {
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
+    let isInitialized = false
+    let isMounted = true
 
     const initializeAuth = async () => {
+      if (isInitialized || !isMounted) return
+      isInitialized = true
+      
       try {
         console.log('🔄 useAuth - Inicializando autenticação...')
         setError(null)
         
-        // Timeout de segurança para evitar loading infinito
+        // Timeout reduzido para 8 segundos
         timeoutId = setTimeout(() => {
+          if (!isMounted) return
           console.error('⏰ useAuth - Timeout na inicialização da autenticação')
           setError('Timeout na conexão. Verifique sua conexão com a internet.')
           setLoading(false)
-        }, 15000) // 15 segundos
+        }, 8000)
 
-        // Obter sessão inicial
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        // Obter sessão inicial com timeout próprio
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Session timeout')), 5000)
+        })
+
+        const { data: { session }, error: sessionError } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any
         
+        if (!isMounted) return
+
         if (sessionError) {
           console.error('❌ useAuth - Erro ao obter sessão:', sessionError)
           setError('Erro ao conectar com o servidor de autenticação.')
@@ -112,12 +132,23 @@ export function useAuth() {
         setSession(session)
         await updateUserData(session?.user ?? null)
         
-        clearTimeout(timeoutId)
-        setLoading(false)
+        if (timeoutId) clearTimeout(timeoutId)
+        if (isMounted) setLoading(false)
       } catch (error) {
+        if (!isMounted) return
         console.error('❌ useAuth - Erro na inicialização:', error)
-        setError('Erro inesperado na inicialização.')
-        clearTimeout(timeoutId)
+        
+        // Se for timeout, não mostrar como erro crítico
+        if (error instanceof Error && error.message === 'Session timeout') {
+          console.log('⚠️ useAuth - Timeout na sessão, continuando sem autenticação')
+          setSession(null)
+          setUser(null)
+          setProfile(null)
+        } else {
+          setError('Erro inesperado na inicialização.')
+        }
+        
+        if (timeoutId) clearTimeout(timeoutId)
         setLoading(false)
       }
     }
@@ -128,12 +159,22 @@ export function useAuth() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return
+      
       try {
         console.log('🔄 useAuth - Mudança de estado de autenticação:', _event)
+        
+        // Evita processamento desnecessário se a sessão não mudou
+        if (_event === 'TOKEN_REFRESHED') {
+          setSession(session)
+          return
+        }
+        
         setSession(session)
         await updateUserData(session?.user ?? null)
-        setLoading(false)
+        if (isMounted) setLoading(false)
       } catch (error) {
+        if (!isMounted) return
         console.error('❌ useAuth - Erro na mudança de estado:', error)
         setError('Erro ao processar mudança de autenticação.')
         setLoading(false)
@@ -141,6 +182,7 @@ export function useAuth() {
     })
 
     return () => {
+      isMounted = false
       if (timeoutId) clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
@@ -148,6 +190,7 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string, remember: boolean = false) => {
     setLoading(true)
+    setError(null)
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -159,6 +202,7 @@ export function useAuth() {
       setRememberMe(remember)
       return { data, error: null }
     } catch (error) {
+      console.error('❌ useAuth - Erro no login:', error)
       return { data: null, error }
     } finally {
       setLoading(false)
@@ -168,15 +212,28 @@ export function useAuth() {
   const signOut = async () => {
     setLoading(true)
     try {
+      // Tentar fazer logout no Supabase
       const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      setRememberMe(false)
-      return { error: null }
+      if (error) {
+        console.warn('⚠️ useAuth - Erro no logout remoto:', error)
+        // Não lançar erro, apenas avisar
+      }
     } catch (error) {
-      return { error }
+      console.warn('⚠️ useAuth - Falha na conexão durante logout:', error)
+      // Não lançar erro, continuar com limpeza local
     } finally {
+      // Sempre limpar estado local, independente do resultado remoto
+      setUser(null)
+      setProfile(null)
+      setSession(null)
+      setRememberMe(false)
+      setError(null)
       setLoading(false)
+      
+      console.log('✅ useAuth - Estado local limpo após logout')
     }
+    
+    return { error: null }
   }
 
   const resetPassword = async (email: string) => {

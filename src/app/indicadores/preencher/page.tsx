@@ -369,27 +369,7 @@ export default function PreencherIndicadoresPage() {
             })}
           </div>
 
-          {/* Rodapé com Estatísticas */}
-          <div className="bg-white/20 backdrop-blur-lg border border-white/30 rounded-lg p-6 shadow-sm">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-[#1f1f1f]">{temas.length}</div>
-                <div className="text-sm text-[#7a5b3e]/70">Temas Disponíveis</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-[#ff6600]">1</div>
-                <div className="text-sm text-[#7a5b3e]/70">Layout Unificado</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-green-600">0</div>
-                <div className="text-sm text-[#7a5b3e]/70">Preenchidos Hoje</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-orange-600">0</div>
-                <div className="text-sm text-[#7a5b3e]/70">Pendentes</div>
-              </div>
-            </div>
-          </div>
+          
         </div>
 
         {/* Modal */}

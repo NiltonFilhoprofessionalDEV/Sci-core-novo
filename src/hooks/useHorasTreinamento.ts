@@ -99,8 +99,9 @@ export function useHorasTreinamento(secaoId?: string) {
 
   // Validar horas de treinamento
   const validarHoras = useCallback((horas: number): boolean => {
-    if (horas < 0 || horas > 24) {
-      toast.error('As horas devem estar entre 0 e 24');
+    const MAX_HORAS = 99 + (59 / 60) + (59 / 3600);
+    if (horas < 0 || horas > MAX_HORAS) {
+      toast.error('As horas devem estar entre 0 e 99:59:59');
       return false;
     }
     return true;

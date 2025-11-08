@@ -40,10 +40,10 @@ export const TEMAS_INDICADORES: TemaInfo[] = [
   },
   {
     id: 'taf',
-    nome: 'TAF (Registros Meteorológicos)',
-    tabela: 'taf_registros',
-    icone: 'Cloud',
-    descricao: 'Terminal Aerodrome Forecast - Registros meteorológicos'
+    nome: 'TAF (Teste de Aptidão Física)',
+    tabela: 'taf_resultados',
+    icone: 'Activity',
+    descricao: 'Resultados do Teste de Aptidão Física realizados pelas equipes'
   },
   {
     id: 'ptr-ba-prova-teorica',
@@ -96,14 +96,14 @@ export const TEMAS_INDICADORES: TemaInfo[] = [
   },
   {
     id: 'verificacao-tps',
-    nome: 'Verificação de TPS',
+    nome: "Verificação de TP's",
     tabela: 'verificacao_tps',
     icone: 'CheckCircle',
     descricao: 'Verificação de Equipamentos de Proteção Individual'
   },
   {
     id: 'higienizacao-tps',
-    nome: 'Higienização de TPS',
+    nome: "Higienização de TP's",
     tabela: 'higienizacao_tps',
     icone: 'Droplets',
     descricao: 'Limpeza e desinfecção de equipamentos de proteção'
@@ -127,6 +127,8 @@ export const TEMAS_INDICADORES: TemaInfo[] = [
 export function HistoricoIndicadores() {
   const { user } = useAuth()
   const [temaAtivo, setTemaAtivo] = useState<string>(TEMAS_INDICADORES[0].id)
+  const [paginaAtual, setPaginaAtual] = useState(1)
+  const registrosPorPagina = 10
   const [filtros, setFiltros] = useState<FiltrosState>({
     dataInicio: '',
     dataFim: '',
@@ -154,9 +156,30 @@ export function HistoricoIndicadores() {
   } = useHistoricoData({
     tema: temaAtivoObj,
     filtros,
-    paginaAtual: 1,
-    registrosPorPagina: 10
+    paginaAtual,
+    registrosPorPagina
   })
+
+  const totalPaginas = Math.max(1, Math.ceil(totalRegistros / registrosPorPagina))
+
+  useEffect(() => {
+    setPaginaAtual(1)
+  }, [temaAtivo, filtros.dataInicio, filtros.dataFim, filtros.equipeId, filtros.mesAno])
+
+  useEffect(() => {
+    const maxPagina = Math.max(1, Math.ceil(totalRegistros / registrosPorPagina))
+    if (paginaAtual > maxPagina) {
+      setPaginaAtual(maxPagina)
+    }
+  }, [totalRegistros, paginaAtual, registrosPorPagina])
+
+  const handlePaginaChange = (pagina: number) => {
+    if (pagina < 1 || pagina > totalPaginas || pagina === paginaAtual) return
+    setPaginaAtual(pagina)
+    if (contentRef.current) {
+      contentRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
   
   // Efeito para buscar contadores quando os temas mudarem
   useEffect(() => {
@@ -250,6 +273,10 @@ export function HistoricoIndicadores() {
           dados={dados}
           loading={loading}
           filtros={filtros}
+          totalRegistros={totalRegistros}
+          paginaAtual={paginaAtual}
+          registrosPorPagina={registrosPorPagina}
+          onPaginaChange={handlePaginaChange}
           onRefresh={refetch}
           onExcluir={excluirRegistro}
           onEditar={editarRegistro}

@@ -171,7 +171,7 @@ export const useOcorrenciasNaoAeronauticas = () => {
       return { isValid: false, message: 'Data é obrigatória' }
     }
 
-    const selectedDate = new Date(date)
+    const selectedDate = new Date(`${date}T00:00:00`)
     const today = new Date()
     today.setHours(23, 59, 59, 999) // Final do dia atual
 

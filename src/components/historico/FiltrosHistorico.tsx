@@ -30,7 +30,11 @@ export function FiltrosHistorico({
   // Carregar equipes
   useEffect(() => {
     async function carregarEquipes() {
-      if (!user) return
+      if (!user?.profile?.secao_id) {
+        setEquipes([])
+        setLoadingEquipes(false)
+        return
+      }
 
       try {
         setLoadingEquipes(true)
@@ -38,6 +42,7 @@ export function FiltrosHistorico({
         const { data, error } = await supabase
           .from('equipes')
           .select('id, nome, nome_cidade')
+          .eq('secao_id', user.profile.secao_id)
           .order('nome_cidade', { ascending: true })
           .order('nome', { ascending: true })
 
@@ -90,6 +95,12 @@ export function FiltrosHistorico({
 
   // Verificar se há filtros ativos
   const temFiltrosAtivos = Object.values(filtros).some(valor => valor !== '')
+
+  const formatarDataFiltro = (valor: string) => {
+    if (!valor) return ''
+    const data = new Date(`${valor}T00:00:00`)
+    return data.toLocaleDateString('pt-BR')
+  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -189,12 +200,12 @@ export function FiltrosHistorico({
             <div className="flex flex-wrap gap-2">
               {filtros.dataInicio && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                  Início: {new Date(filtros.dataInicio).toLocaleDateString('pt-BR')}
+                  Início: {formatarDataFiltro(filtros.dataInicio)}
                 </span>
               )}
               {filtros.dataFim && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                  Fim: {new Date(filtros.dataFim).toLocaleDateString('pt-BR')}
+                  Fim: {formatarDataFiltro(filtros.dataFim)}
                 </span>
               )}
               {filtros.equipeId && (

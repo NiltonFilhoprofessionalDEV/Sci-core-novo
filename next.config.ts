@@ -1,5 +1,28 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV !== 'production'
+
+const scriptSources = ["'self'"]
+if (isDev) {
+  scriptSources.push("'unsafe-eval'", "'unsafe-inline'")
+}
+
+const connectSources = ["'self'", "https://*.supabase.co"]
+if (isDev) {
+  connectSources.push('http://localhost:*', 'ws://localhost:*')
+}
+
+const csp = [
+  "default-src 'self'",
+  `script-src ${scriptSources.join(' ')}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  `connect-src ${connectSources.join(' ')}`,
+  "font-src 'self' data:",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+].join('; ') + ';'
+
 const nextConfig: NextConfig = {
   // Configuração mínima e estável para Next.js 15+
   serverExternalPackages: ['@supabase/supabase-js'],
@@ -65,6 +88,10 @@ const nextConfig: NextConfig = {
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: csp,
           },
         ],
       },

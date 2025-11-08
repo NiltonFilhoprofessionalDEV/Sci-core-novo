@@ -33,7 +33,8 @@ const activeRequests = new Map<string, Promise<any>>()
 const CAMPOS_DATA_POR_TABELA: Record<string, string> = {
   'ocorrencias_aeronauticas': 'data_ocorrencia',
   'ocorrencias_nao_aeronauticas': 'data_ocorrencia',
-  'taf_registros': 'data_referencia',
+  'taf_registros': 'data_teste',
+  'taf_resultados': 'data_taf',
   'ptr_ba_provas_teoricas': 'data_referencia',
   'ptr_ba_horas_treinamento': 'data_referencia',
   'inspecoes_viatura': 'data_referencia',
@@ -52,6 +53,7 @@ const TABELAS_VALIDAS = new Set([
   'ocorrencias_aeronauticas',
   'ocorrencias_nao_aeronauticas',
   'taf_registros',
+  'taf_resultados',
   'ptr_ba_provas_teoricas',
   'ptr_ba_horas_treinamento',
   'inspecoes_viatura',
@@ -105,15 +107,29 @@ const verificarTabelaExiste = (nomeTabela: string): boolean => {
 
 // Função para construir query com filtros RLS
 const construirQuery = (tabela: string, profile: any, filtros: FiltrosState, paginaAtual: number, registrosPorPagina: number) => {
+  const isTabelaTAF = tabela === 'taf_resultados'
+
+  const selectColumns = isTabelaTAF
+    ? 'id, funcionario_id, idade, tempo_total, desempenho, observacoes, nome_completo, nome_cidade, nome_equipe, data_taf, created_at, updated_at, taf_registros!inner(id, secao_id, equipe_id, data_teste)'
+    : '*'
+
   let query = supabase
     .from(tabela)
-    .select('*', { count: 'exact' })
+    .select(selectColumns, { count: 'exact' })
 
   // Aplicar RLS baseado no perfil
-  if (profile.perfil === 'ba_ce' && profile.secao_id) {
-    query = query.eq('secao_id', profile.secao_id)
-  } else if (profile.perfil === 'ba_op' && profile.equipe_id) {
-    query = query.eq('equipe_id', profile.equipe_id)
+  if (isTabelaTAF) {
+    if (profile.perfil === 'ba_ce' && profile.secao_id) {
+      query = query.eq('taf_registros.secao_id', profile.secao_id)
+    } else if (profile.perfil === 'ba_op' && profile.equipe_id) {
+      query = query.eq('taf_registros.equipe_id', profile.equipe_id)
+    }
+  } else {
+    if (profile.perfil === 'ba_ce' && profile.secao_id) {
+      query = query.eq('secao_id', profile.secao_id)
+    } else if (profile.perfil === 'ba_op' && profile.equipe_id) {
+      query = query.eq('equipe_id', profile.equipe_id)
+    }
   }
 
   // Obter campo de data correto
@@ -135,7 +151,9 @@ const construirQuery = (tabela: string, profile: any, filtros: FiltrosState, pag
 
   // Filtro por equipe
   if (filtros.equipeId) {
-    query = query.eq('equipe_id', filtros.equipeId)
+    query = isTabelaTAF
+      ? query.eq('taf_registros.equipe_id', filtros.equipeId)
+      : query.eq('equipe_id', filtros.equipeId)
   }
 
   // Filtro por mês/ano
@@ -469,17 +487,30 @@ export function useContadoresTemas() {
           }
 
           const campoData = CAMPOS_DATA_POR_TABELA[tema.tabela] || 'data_referencia'
+          const isTabelaTAF = tema.tabela === 'taf_resultados'
+
+          const selectColumns = isTabelaTAF
+            ? 'id, taf_registros!inner(id, secao_id, equipe_id)'
+            : '*'
 
           let query = supabase
             .from(tema.tabela)
-            .select('*', { count: 'exact', head: true })
+            .select(selectColumns, { count: 'exact', head: true })
             .gte(campoData, dataLimiteStr)
 
           // Aplicar RLS
-          if (profile.perfil === 'ba_ce' && profile.secao_id) {
-            query = query.eq('secao_id', profile.secao_id)
-          } else if (profile.perfil === 'ba_op' && profile.equipe_id) {
-            query = query.eq('equipe_id', profile.equipe_id)
+          if (isTabelaTAF) {
+            if (profile.perfil === 'ba_ce' && profile.secao_id) {
+              query = query.eq('taf_registros.secao_id', profile.secao_id)
+            } else if (profile.perfil === 'ba_op' && profile.equipe_id) {
+              query = query.eq('taf_registros.equipe_id', profile.equipe_id)
+            }
+          } else {
+            if (profile.perfil === 'ba_ce' && profile.secao_id) {
+              query = query.eq('secao_id', profile.secao_id)
+            } else if (profile.perfil === 'ba_op' && profile.equipe_id) {
+              query = query.eq('equipe_id', profile.equipe_id)
+            }
           }
 
           const { count, error } = await query

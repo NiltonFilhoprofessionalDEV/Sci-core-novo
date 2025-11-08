@@ -98,7 +98,7 @@ export const useAtividadesAcessorias = () => {
   // Validar data (não pode ser futura)
   const validateDate = useCallback((date: string): boolean => {
     if (!date) return false
-    const selectedDate = new Date(date)
+    const selectedDate = new Date(`${date}T00:00:00`)
     const today = new Date()
     today.setHours(23, 59, 59, 999) // Fim do dia atual
     return selectedDate <= today

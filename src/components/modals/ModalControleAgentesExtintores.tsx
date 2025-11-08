@@ -198,7 +198,7 @@ export function ModalControleAgentesExtintores({
     if (!formData.data) {
       errors.data = 'Data é obrigatória'
     } else {
-      const dataReferencia = new Date(formData.data)
+      const dataReferencia = new Date(`${formData.data}T00:00:00`)
       const hoje = new Date()
       hoje.setHours(23, 59, 59, 999)
       
@@ -268,7 +268,7 @@ export function ModalControleAgentesExtintores({
   // Formatação de data para exibição
   const formatDate = (dateString: string) => {
     if (!dateString) return ''
-    const date = new Date(dateString)
+    const date = new Date(`${dateString}T00:00:00`)
     return date.toLocaleDateString('pt-BR')
   }
 

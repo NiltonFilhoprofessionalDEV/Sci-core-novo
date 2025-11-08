@@ -103,8 +103,15 @@ export function VisualizacaoTema({
   }, [tema.id])
 
   // Função para formatar data
-  const formatarData = (data: string) => {
-    return new Date(data).toLocaleDateString('pt-BR', {
+  const formatarData = (data?: string | null) => {
+    if (!data) return '—'
+
+    const parsed = new Date(data)
+    if (Number.isNaN(parsed.getTime())) {
+      return data
+    }
+
+    return parsed.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -112,8 +119,15 @@ export function VisualizacaoTema({
   }
 
   // Função para formatar data e hora
-  const formatarDataHora = (data: string) => {
-    return new Date(data).toLocaleString('pt-BR', {
+  const formatarDataHora = (data?: string | null) => {
+    if (!data) return '—'
+
+    const parsed = new Date(data)
+    if (Number.isNaN(parsed.getTime())) {
+      return data
+    }
+
+    return parsed.toLocaleString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -124,8 +138,10 @@ export function VisualizacaoTema({
 
   // Função para obter status visual
   const obterStatusVisual = (registro: any) => {
+    const temaChave = tema.tabela || tema.id
+
     // Lógica específica por tema para determinar status
-    if (tema.id === 'ocorrencias_aeronauticas' || tema.id === 'ocorrencias_nao_aeronauticas') {
+    if (temaChave === 'ocorrencias_aeronauticas' || temaChave === 'ocorrencias_nao_aeronauticas') {
       return {
         icon: AlertCircle,
         color: 'text-red-600',
@@ -134,7 +150,74 @@ export function VisualizacaoTema({
       }
     }
     
-    if (tema.id === 'controle_trocas' || tema.id === 'verificacao_tps') {
+    if (temaChave === 'taf_resultados') {
+      const desempenho = registro.desempenho
+
+      if (desempenho === null || desempenho === undefined) {
+        return {
+          icon: Cloud,
+          color: 'text-gray-600',
+          bg: 'bg-gray-100',
+          label: 'Sem Avaliação'
+        }
+      }
+
+      if (desempenho >= 7) {
+        return {
+          icon: CheckCircle,
+          color: 'text-green-600',
+          bg: 'bg-green-100',
+          label: 'Aprovado'
+        }
+      }
+
+      return {
+        icon: AlertCircle,
+        color: 'text-red-600',
+        bg: 'bg-red-100',
+        label: 'Reprovado'
+      }
+    }
+
+    if (temaChave === 'ptr_ba_provas_teoricas') {
+      const status = (registro.status || '').toLowerCase()
+
+      if (!status) {
+        return {
+          icon: FileText,
+          color: 'text-gray-600',
+          bg: 'bg-gray-100',
+          label: 'Sem Avaliação'
+        }
+      }
+
+      if (status === 'aprovado') {
+        return {
+          icon: CheckCircle,
+          color: 'text-green-600',
+          bg: 'bg-green-100',
+          label: 'Aprovado'
+        }
+      }
+
+      if (status === 'reprovado') {
+        return {
+          icon: AlertCircle,
+          color: 'text-red-600',
+          bg: 'bg-red-100',
+          label: 'Reprovado'
+        }
+      }
+
+      return {
+        icon: Clock,
+        color: 'text-yellow-600',
+        bg: 'bg-yellow-100',
+        label: status.charAt(0).toUpperCase() + status.slice(1)
+      }
+    }
+
+    if (temaChave === 'controle_trocas' || temaChave === 'verificacao_tps') {
       const status = registro.status || 'pendente'
       switch (status) {
         case 'concluido':
@@ -161,6 +244,44 @@ export function VisualizacaoTema({
       }
     }
 
+    if (temaChave === 'tempo_epr') {
+      const status = (registro.status || '').toLowerCase()
+
+      if (status === 'ideal') {
+        return {
+          icon: CheckCircle,
+          color: 'text-green-600',
+          bg: 'bg-green-100',
+          label: 'Ideal'
+        }
+      }
+
+      if (status === 'tolerável' || status === 'toleravel') {
+        return {
+          icon: Clock,
+          color: 'text-yellow-600',
+          bg: 'bg-yellow-100',
+          label: 'Tolerável'
+        }
+      }
+
+      if (status === 'reprovado') {
+        return {
+          icon: AlertCircle,
+          color: 'text-red-600',
+          bg: 'bg-red-100',
+          label: 'Reprovado'
+        }
+      }
+
+      return {
+        icon: FileText,
+        color: 'text-gray-600',
+        bg: 'bg-gray-100',
+        label: registro.status || 'Registro'
+      }
+    }
+
     return {
       icon: FileText,
       color: 'text-blue-600',
@@ -172,72 +293,399 @@ export function VisualizacaoTema({
   // Função para obter campos principais do registro
   const obterCamposPrincipais = (registro: any) => {
     const campos = []
+    const temaChave = tema.tabela || tema.id
 
-    // Data de referência (comum a todos)
-    if (registro.data_referencia) {
+    // Data principal do registro
+    const dataPrincipal =
+      registro.data_referencia ||
+      registro.data_tempo_resposta ||
+      registro.data_exercicio_epr ||
+      registro.data_ocorrencia ||
+      registro.data_prova ||
+      registro.data_taf ||
+      registro.taf_registros?.data_teste ||
+      registro.data_teste ||
+      registro.data ||
+      registro.validade_inicio ||
+      registro.created_at
+
+    if (dataPrincipal) {
+      let labelData = 'Data'
+
+      if (registro.data_referencia) {
+        labelData = 'Data'
+      } else if (registro.data_tempo_resposta) {
+        labelData = 'Data'
+      } else if (registro.data_exercicio_epr) {
+        labelData = 'Data do Exercício'
+      } else if (registro.data_ocorrencia) {
+        labelData = 'Data da Ocorrência'
+      } else if (registro.data_prova) {
+        labelData = 'Data da Prova'
+      } else if (registro.data_taf || registro.taf_registros?.data_teste || registro.data_teste) {
+        labelData = 'Data do TAF'
+      } else if (registro.data) {
+        labelData = 'Data'
+      } else if (registro.validade_inicio) {
+        labelData = 'Início'
+      }
+
       campos.push({
-        label: 'Data',
-        valor: formatarData(registro.data_referencia),
+        label: labelData,
+        valor: formatarData(dataPrincipal),
         icon: Calendar
       })
     }
 
     // Usuário (comum a todos)
-    if (registro.usuario_nome || registro.usuario_id) {
+    if (registro.usuario_nome) {
       campos.push({
         label: 'Usuário',
-        valor: registro.usuario_nome || `ID: ${registro.usuario_id}`,
+        valor: registro.usuario_nome,
         icon: User
       })
     }
 
     // Campos específicos por tema
-    switch (tema.id) {
+    switch (temaChave) {
       case 'ocorrencias_aeronauticas':
-      case 'ocorrencias_nao_aeronauticas':
+      case 'ocorrencias_nao_aeronauticas': {
         if (registro.tipo_ocorrencia) {
           campos.push({
-            label: 'Tipo',
+            label: 'Tipo de Ocorrência',
             valor: registro.tipo_ocorrencia
           })
         }
+
+        const cidade = registro.cidade_aeroporto || registro.nome_cidade || registro.base
+        if (cidade) {
+          campos.push({
+            label: 'Cidade/Base',
+            valor: cidade
+          })
+        }
+
+        if (registro.local_ocorrencia) {
+          campos.push({
+            label: 'Local da Ocorrência',
+            valor: registro.local_ocorrencia
+          })
+        }
+
+        if (registro.hora_acionamento) {
+          campos.push({
+            label: 'Hora de Acionamento',
+            valor: registro.hora_acionamento,
+            icon: Clock
+          })
+        }
+
+        if (registro.equipe) {
+          campos.push({
+            label: 'Equipe',
+            valor: registro.equipe
+          })
+        }
+
         if (registro.aeronave) {
           campos.push({
             label: 'Aeronave',
             valor: registro.aeronave
           })
         }
+
+        break
+      }
+
+      case 'controle_trocas': {
+        if (registro.nome_cidade) {
+          campos.push({
+            label: 'Cidade',
+            valor: registro.nome_cidade
+          })
+        }
+        if (registro.equipe) {
+          campos.push({
+            label: 'Equipe',
+            valor: registro.equipe
+          })
+        }
+        if (registro.nome_usuario) {
+          campos.push({
+            label: 'Responsável',
+            valor: registro.nome_usuario
+          })
+        }
+        if (registro.quantidade_troca !== null && registro.quantidade_troca !== undefined) {
+          campos.push({
+            label: 'Quantidade de Trocas',
+            valor: registro.quantidade_troca
+          })
+        }
+        if (registro.observacoes) {
+          campos.push({
+            label: 'Observações',
+            valor: registro.observacoes.length > 50
+              ? `${registro.observacoes.substring(0, 50)}...`
+              : registro.observacoes
+          })
+        }
+        break
+      }
+
+      case 'tempo_resposta': {
+        if (registro.nome_cidade) {
+          campos.push({ label: 'Cidade', valor: registro.nome_cidade })
+        }
+        if (registro.equipe) {
+          campos.push({ label: 'Equipe', valor: registro.equipe })
+        }
+        if (registro.nome_completo) {
+          campos.push({ label: 'Nome Completo', valor: registro.nome_completo, icon: User })
+        }
+        if (registro.tempo_exercicio) {
+          campos.push({ label: 'Tempo de Resposta', valor: registro.tempo_exercicio, icon: Clock })
+        }
+        if (registro.local_posicionamento) {
+          campos.push({ label: 'Local', valor: registro.local_posicionamento })
+        }
+        if (registro.cci_utilizado) {
+          campos.push({ label: 'CCI Utilizado', valor: registro.cci_utilizado })
+        }
+        break
+      }
+
+      case 'controle_agentes_extintores': {
+        if (registro.nome_cidade) {
+          campos.push({ label: 'Cidade', valor: registro.nome_cidade })
+        }
+        if (registro.equipe) {
+          campos.push({ label: 'Equipe', valor: registro.equipe })
+        }
+        if (registro.nome_completo) {
+          campos.push({ label: 'Responsável', valor: registro.nome_completo, icon: User })
+        }
+        if (registro.quantidade_estoque_po_quimico !== undefined) {
+          campos.push({ label: 'Pó Químico (Estoque)', valor: registro.quantidade_estoque_po_quimico })
+        }
+        if (registro.quantidade_estoque_lge !== undefined) {
+          campos.push({ label: 'LGE (Estoque)', valor: registro.quantidade_estoque_lge })
+        }
+        if (registro.quantidade_estoque_nitrogenio !== undefined) {
+          campos.push({ label: 'Nitrogênio (Estoque)', valor: registro.quantidade_estoque_nitrogenio })
+        }
+        if (registro.observacoes) {
+          campos.push({ label: 'Observações', valor: registro.observacoes.length > 50 ? `${registro.observacoes.substring(0, 50)}...` : registro.observacoes })
+        }
+        break
+      }
+
+      case 'tempo_epr':
+        if (registro.nome_cidade) {
+          campos.push({
+            label: 'Cidade',
+            valor: registro.nome_cidade
+          })
+        }
+        if (registro.nome_completo) {
+          campos.push({
+            label: 'Nome Completo',
+            valor: registro.nome_completo,
+            icon: User
+          })
+        }
+        if (registro.tempo_epr) {
+          campos.push({
+            label: 'Tempo',
+            valor: registro.tempo_epr,
+            icon: Clock
+          })
+        }
+        if (registro.status) {
+          campos.push({
+            label: 'Status',
+            valor: registro.status
+          })
+        }
+        if (registro.equipe) {
+          campos.push({
+            label: 'Equipe',
+            valor: registro.equipe
+          })
+        }
         break
 
-      case 'controle_trocas':
-        if (registro.tipo_troca) {
+      case 'taf_resultados':
+        if (registro.nome_completo) {
           campos.push({
-            label: 'Tipo de Troca',
-            valor: registro.tipo_troca
+            label: 'Funcionário',
+            valor: registro.nome_completo,
+            icon: User
           })
         }
-        if (registro.equipamento) {
+        if (registro.nome_equipe) {
           campos.push({
-            label: 'Equipamento',
-            valor: registro.equipamento
+            label: 'Equipe',
+            valor: registro.nome_equipe
+          })
+        }
+        if (registro.nome_cidade) {
+          campos.push({
+            label: 'Base',
+            valor: registro.nome_cidade
+          })
+        }
+        if (registro.desempenho !== null && registro.desempenho !== undefined) {
+          campos.push({
+            label: 'Desempenho',
+            valor: registro.desempenho
+          })
+        }
+        if (registro.tempo_total) {
+          campos.push({
+            label: 'Tempo',
+            valor: registro.tempo_total,
+            icon: Clock
+          })
+        }
+        if (registro.observacoes) {
+          campos.push({
+            label: 'Observações',
+            valor: registro.observacoes.length > 50
+              ? `${registro.observacoes.substring(0, 50)}...`
+              : registro.observacoes
           })
         }
         break
 
-      case 'taf_registros':
-        if (registro.codigo_aeroporto || registro.aeroporto) {
+      case 'verificacao_tps': {
+        if (registro.nome_cidade) {
+          campos.push({ label: 'Cidade', valor: registro.nome_cidade })
+        }
+        if (registro.equipe) {
+          campos.push({ label: 'Equipe', valor: registro.equipe })
+        }
+        if (registro.nome_usuario) {
+          campos.push({ label: 'Responsável', valor: registro.nome_usuario, icon: User })
+        }
+        if (registro.tp_conforme !== undefined) {
+          campos.push({ label: 'TPs Conformes', valor: registro.tp_conforme })
+        }
+        if (registro.tp_verificado !== undefined) {
+          campos.push({ label: 'TPs Verificados', valor: registro.tp_verificado })
+        }
+        if (registro.tp_total !== undefined) {
+          campos.push({ label: 'TPs Totais', valor: registro.tp_total })
+        }
+        break
+      }
+
+      case 'higienizacao_tps': {
+        if (registro.nome_cidade) {
+          campos.push({ label: 'Cidade', valor: registro.nome_cidade })
+        }
+        if (registro.equipe) {
+          campos.push({ label: 'Equipe', valor: registro.equipe })
+        }
+        if (registro.nome_usuario) {
+          campos.push({ label: 'Responsável', valor: registro.nome_usuario, icon: User })
+        }
+        if (registro.tp_higienizado !== undefined) {
+          campos.push({ label: 'TPs Higienizados', valor: registro.tp_higienizado })
+        }
+        if (registro.tp_total !== undefined) {
+          campos.push({ label: 'TPs Totais', valor: registro.tp_total })
+        }
+        break
+      }
+
+      case 'controle_uniformes_recebidos': {
+        if (registro.nome_cidade) {
+          campos.push({ label: 'Cidade', valor: registro.nome_cidade })
+        }
+        if (registro.equipe) {
+          campos.push({ label: 'Equipe', valor: registro.equipe })
+        }
+        if (registro.nome_completo) {
+          campos.push({ label: 'Funcionário', valor: registro.nome_completo, icon: User })
+        } else if (registro.nome_usuario) {
+          campos.push({ label: 'Responsável', valor: registro.nome_usuario, icon: User })
+        }
+        if (registro.epi_entregue !== undefined && registro.epi_previsto !== undefined) {
+          campos.push({ label: 'EPIs (entregue / previsto)', valor: `${registro.epi_entregue} / ${registro.epi_previsto}` })
+        }
+        if (registro.uniforme_entregue !== undefined && registro.uniforme_previsto !== undefined) {
+          campos.push({ label: 'Uniformes (entregue / previsto)', valor: `${registro.uniforme_entregue} / ${registro.uniforme_previsto}` })
+        }
+        if (registro.porcentagem_epi !== undefined) {
+          campos.push({ label: 'Entrega de EPIs (%)', valor: `${registro.porcentagem_epi}%` })
+        }
+        if (registro.porcentagem_uniforme !== undefined) {
+          campos.push({ label: 'Entrega de Uniformes (%)', valor: `${registro.porcentagem_uniforme}%` })
+        }
+        if (registro.observacoes) {
+          campos.push({ label: 'Observações', valor: registro.observacoes.length > 50 ? `${registro.observacoes.substring(0, 50)}...` : registro.observacoes })
+        }
+        break
+      }
+
+      case 'ptr_ba_provas_teoricas':
+        if (registro.nome_completo) {
           campos.push({
-            label: 'Aeroporto',
-            valor: registro.codigo_aeroporto || registro.aeroporto
+            label: 'Participante',
+            valor: registro.nome_completo,
+            icon: User
           })
         }
-        if (registro.validade_inicio) {
+        if (registro.nome_cidade) {
           campos.push({
-            label: 'Validade',
-            valor: `${formatarDataHora(registro.validade_inicio)} - ${formatarDataHora(registro.validade_fim)}`
+            label: 'Base',
+            valor: registro.nome_cidade
+          })
+        }
+        if (registro.status) {
+          campos.push({
+            label: 'Status',
+            valor: registro.status
+          })
+        }
+        if (registro.nota_prova !== null && registro.nota_prova !== undefined) {
+          campos.push({
+            label: 'Nota',
+            valor: registro.nota_prova
+          })
+        }
+        if (registro.observacoes) {
+          campos.push({
+            label: 'Observações',
+            valor: registro.observacoes.length > 50
+              ? `${registro.observacoes.substring(0, 50)}...`
+              : registro.observacoes
           })
         }
         break
+
+      case 'atividades_acessorias': {
+        if (registro.cidade_aeroporto) {
+          campos.push({ label: 'Cidade', valor: registro.cidade_aeroporto })
+        }
+        if (registro.equipe_nome) {
+          campos.push({ label: 'Equipe', valor: registro.equipe_nome })
+        }
+        if (registro.tipo_atividade) {
+          campos.push({ label: 'Tipo de Atividade', valor: registro.tipo_atividade })
+        }
+        if (registro.qtd_equipamentos !== undefined) {
+          campos.push({ label: 'Equipamentos', valor: registro.qtd_equipamentos })
+        }
+        if (registro.qtd_bombeiros !== undefined) {
+          campos.push({ label: 'Bombeiros', valor: registro.qtd_bombeiros })
+        }
+        if (registro.tempo_gasto) {
+          campos.push({ label: 'Tempo Gasto', valor: registro.tempo_gasto, icon: Clock })
+        }
+        break
+      }
 
       default:
         // Tentar encontrar campos comuns
@@ -551,7 +999,12 @@ export function VisualizacaoTema({
               <button
                 onClick={() => onPaginaChange(paginaAtual - 1)}
                 disabled={paginaAtual === 1}
-                className="flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: paginaAtual === 1 ? '#f1f5f9' : '#e5e7eb',
+                  color: '#374151',
+                  borderColor: '#cbd5f5'
+                }}
               >
                 <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 <span className="hidden sm:inline">Anterior</span>
@@ -572,15 +1025,18 @@ export function VisualizacaoTema({
                     pagina = paginaAtual - Math.floor(maxPages/2) + i
                   }
 
+                  const isAtual = pagina === paginaAtual
                   return (
                     <button
                       key={pagina}
                       onClick={() => onPaginaChange(pagina)}
-                      className={`px-2 sm:px-3 py-2 text-xs sm:text-sm rounded-lg transition-colors ${
-                        pagina === paginaAtual
-                          ? 'bg-orange-600 text-white'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
+                      className="px-2 sm:px-3 py-2 text-xs sm:text-sm rounded-lg border font-semibold transition-colors shadow-sm"
+                      style={{
+                        backgroundColor: isAtual ? '#f97316' : '#e5e7eb',
+                        color: isAtual ? '#ffffff' : '#374151',
+                        borderColor: isAtual ? '#f97316' : '#cbd5f5',
+                        boxShadow: isAtual ? '0 4px 10px rgba(249, 115, 22, 0.3)' : 'none'
+                      }}
                     >
                       {pagina}
                     </button>
@@ -591,7 +1047,12 @@ export function VisualizacaoTema({
               <button
                 onClick={() => onPaginaChange(paginaAtual + 1)}
                 disabled={paginaAtual === totalPaginas}
-                className="flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: paginaAtual === totalPaginas ? '#f1f5f9' : '#e5e7eb',
+                  color: '#374151',
+                  borderColor: '#cbd5f5'
+                }}
               >
                 <span className="hidden sm:inline">Próxima</span>
                 <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
@@ -622,7 +1083,22 @@ export function VisualizacaoTema({
             <div className="p-4 sm:p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 {Object.entries(registroSelecionado).map(([chave, valor]) => {
-                  if (chave === 'id' || valor === null || valor === undefined) return null
+                  if (chave === 'id' || chave.endsWith('_id') || valor === null || valor === undefined) return null
+
+                  if (chave === 'taf_registros' && typeof valor === 'object') {
+                    return (
+                      <div key={chave} className="space-y-1">
+                        <label className="text-xs sm:text-sm font-medium text-gray-700">
+                          Informações do Registro TAF
+                        </label>
+                        <div className="text-xs sm:text-sm text-gray-900 bg-gray-50 p-2 sm:p-3 rounded-lg space-y-1">
+                          {valor.data_teste && (
+                            <div><strong>Data do Teste:</strong> {formatarData(valor.data_teste)}</div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  }
 
                   return (
                     <div key={chave} className="space-y-1">

@@ -84,11 +84,11 @@ export function useHigienizacaoTPS() {
   // Validar data (não pode ser futura)
   const validarData = useCallback((data: string): boolean => {
     if (!data) return false;
-    
-    const dataEscolhida = new Date(data);
+
+    const dataEscolhida = new Date(`${data}T00:00:00`);
     const hoje = new Date();
     hoje.setHours(23, 59, 59, 999); // Fim do dia atual
-    
+
     return dataEscolhida <= hoje;
   }, []);
 

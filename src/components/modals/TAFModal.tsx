@@ -207,7 +207,7 @@ export function TAFModal({
     // Validar data não futura
     if (formData.data_teste) {
       const hoje = new Date()
-      const dataTesteSelecionada = new Date(formData.data_teste)
+      const dataTesteSelecionada = new Date(`${formData.data_teste}T00:00:00`)
       if (dataTesteSelecionada > hoje) {
         errors.data_teste = 'A data não pode ser futura'
       }

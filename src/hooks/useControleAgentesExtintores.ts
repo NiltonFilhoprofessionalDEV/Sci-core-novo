@@ -9,6 +9,9 @@ export interface ControleAgentesExtintoresData {
   equipe_id: string;
   usuario_id: string;
   data_referencia: string;
+  nome_cidade: string;
+  equipe: string;
+  nome_completo: string;
   quantidade_estoque_po_quimico: number;
   quantidade_estoque_lge: number;
   quantidade_estoque_nitrogenio: number;
@@ -195,7 +198,7 @@ export const useControleAgentesExtintores = () => {
     if (!dados.data) {
       erros.push('Data é obrigatória');
     } else {
-      const dataReferencia = new Date(dados.data);
+      const dataReferencia = new Date(`${dados.data}T00:00:00`);
       const hoje = new Date();
       hoje.setHours(23, 59, 59, 999); // Final do dia atual
       
@@ -283,12 +286,39 @@ export const useControleAgentesExtintores = () => {
         return false;
       }
 
+      const equipeSelecionada = equipes.find(eq => eq.id === dados.equipe_id)
+      const secaoSelecionada = secoes.find(secao => secao.id === dados.base_id)
+
+      const nomeCidade =
+        equipeSelecionada?.nome_cidade ||
+        secaoSelecionada?.cidade ||
+        profile?.secao?.cidade ||
+        ''
+
+      const nomeEquipe =
+        equipeSelecionada?.nome ||
+        profile?.equipe?.nome ||
+        ''
+
+      if (!nomeCidade) {
+        toast.error('Não foi possível identificar a cidade da base selecionada.')
+        return false
+      }
+
+      if (!nomeEquipe) {
+        toast.error('Não foi possível identificar o nome da equipe selecionada.')
+        return false
+      }
+
       // Preparar dados para inserção
       const registrosParaInserir: Omit<ControleAgentesExtintoresData, 'id'>[] = dados.funcionarios.map(funcionario => ({
         secao_id: dados.base_id,
         equipe_id: dados.equipe_id,
         usuario_id: user.id,
         data_referencia: dados.data,
+        nome_cidade: nomeCidade,
+        equipe: nomeEquipe,
+        nome_completo: funcionario.nome_completo,
         quantidade_estoque_po_quimico: Math.round(Number(funcionario.quantidade_estoque_po_quimico)),
         quantidade_estoque_lge: Math.round(Number(funcionario.quantidade_estoque_lge)),
         quantidade_estoque_nitrogenio: Math.round(Number(funcionario.quantidade_estoque_nitrogenio)),
@@ -296,19 +326,27 @@ export const useControleAgentesExtintores = () => {
         quantidade_exigida_lge: Math.round(Number(funcionario.quantidade_exigida_lge)),
         quantidade_exigida_nitrogenio: Math.round(Number(funcionario.quantidade_exigida_nitrogenio)),
         observacoes: funcionario.observacoes || null
-      }));
+      }))
 
-      console.log('📝 Dados preparados para inserção:', registrosParaInserir);
+      console.log('📝 Dados preparados para inserção:', registrosParaInserir)
 
-      // Inserir no Supabase
-      const { error } = await supabase
+      const { data: insertData, error } = await supabase
         .from('controle_agentes_extintores')
-        .insert(registrosParaInserir);
+        .insert(registrosParaInserir)
+        .select('id')
+
+      console.log('🔍 Supabase insert retorno:', { insertData, error })
 
       if (error) {
-        console.error('❌ Erro ao inserir dados:', error);
-        toast.error('Erro ao salvar controle de agentes extintores');
-        return false;
+        console.error('❌ Supabase error (raw):', error)
+        console.error('❌ Supabase error (JSON):', JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        console.error('❌ Supabase error (details):', {
+          code: (error as any).code,
+          message: (error as any).message,
+          hint: (error as any).hint,
+          details: (error as any).details
+        })
+        throw error
       }
 
       console.log('✅ Controle de agentes extintores salvo com sucesso');

@@ -186,7 +186,7 @@ export function ModalVerificacaoTPs({
         errors.data = 'Data inválida ou futura não é permitida'
       } else {
         // Verificar se a data não é muito antiga (mais de 1 ano)
-        const dataInformada = new Date(formData.data)
+        const dataInformada = new Date(`${formData.data}T00:00:00`)
         const umAnoAtras = new Date()
         umAnoAtras.setFullYear(umAnoAtras.getFullYear() - 1)
         

@@ -27,6 +27,7 @@ export function ModalControleTrocas({
 }: ModalControleTrocasProps) {
   const { user } = useAuth()
   const secaoId = user?.profile?.secao?.id
+  const nomeBase = user?.profile?.secao?.nome || 'Base não identificada'
 
   const {
     secoes,
@@ -124,7 +125,7 @@ export function ModalControleTrocas({
     if (!formData.data) {
       errors.data = 'Data é obrigatória'
     } else {
-      const dataReferencia = new Date(formData.data)
+      const dataReferencia = new Date(`${formData.data}T00:00:00`)
       const hoje = new Date()
       hoje.setHours(23, 59, 59, 999)
       

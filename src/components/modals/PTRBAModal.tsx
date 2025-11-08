@@ -209,7 +209,7 @@ export function PTRBAModal({
     // Validar data não futura
     if (formData.data_prova) {
       const hoje = new Date()
-      const dataProvaSelecionada = new Date(formData.data_prova)
+      const dataProvaSelecionada = new Date(`${formData.data_prova}T00:00:00`)
       if (dataProvaSelecionada > hoje) {
         errors.data_prova = 'A data não pode ser futura'
       }

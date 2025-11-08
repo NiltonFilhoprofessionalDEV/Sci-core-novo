@@ -26,8 +26,22 @@ export interface TAFRegistro {
 }
 
 export const useTAF = (secaoId?: string) => {
-  const { secoes, loading: secoesLoading, getSecaoByUser } = useSecoes();
-  const { equipes, loading: equipesLoading, refresh: refreshEquipes } = useEquipesBySecao(secaoId);
+  const {
+    secoes,
+    loading: secoesLoading,
+    getSecaoByUser,
+    getEquipesBySecao,
+    refreshEquipes: refreshEquipesContext
+  } = useSecoes();
+
+  const secaoUsuario = getSecaoByUser();
+  const resolvedSecaoId = secaoId ?? secaoUsuario?.id;
+
+  const {
+    equipes,
+    loading: equipesLoading,
+    refresh: refreshEquipesHook
+  } = useEquipesBySecao(resolvedSecaoId);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -35,14 +49,18 @@ export const useTAF = (secaoId?: string) => {
   // Função otimizada para buscar equipes por seção (usa o contexto)
   const fetchEquipesPorSecao = useCallback(async (targetSecaoId: string) => {
     try {
-      await refreshEquipes();
-      return equipes;
+      if (resolvedSecaoId === targetSecaoId) {
+        await refreshEquipesHook();
+      } else {
+        await refreshEquipesContext(targetSecaoId);
+      }
+      return getEquipesBySecao(targetSecaoId);
     } catch (error) {
       console.error('Erro ao buscar equipes:', error);
       toast.error('Erro ao carregar equipes');
       throw error;
     }
-  }, [refreshEquipes, equipes]);
+  }, [refreshEquipesHook, refreshEquipesContext, getEquipesBySecao, resolvedSecaoId]);
 
   // Buscar funcionários por equipe
   const fetchFuncionariosPorEquipe = useCallback(async (equipeId: string) => {
@@ -124,7 +142,7 @@ export const useTAF = (secaoId?: string) => {
 
       // Validar se a data não é futura
       const hoje = new Date();
-      const dataTesteSelecionada = new Date(dados.data_teste);
+      const dataTesteSelecionada = new Date(`${dados.data_teste}T00:00:00`);
       if (dataTesteSelecionada > hoje) {
         toast.error('A data do teste não pode ser futura');
         return false;

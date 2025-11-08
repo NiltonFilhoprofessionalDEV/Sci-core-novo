@@ -68,8 +68,10 @@ export function ModalHorasTreinamento({
   // Validar formato de tempo HH:MM:SS
   const validateTimeFormat = (time: string): boolean => {
     if (!time) return false
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/
-    return timeRegex.test(time)
+    const timeRegex = /^([0-9]{1,2}):[0-5][0-9]:[0-5][0-9]$/
+    if (!timeRegex.test(time)) return false
+    const [hours] = time.split(':').map(Number)
+    return hours >= 0 && hours <= 99
   }
 
   // Estado do formulário
@@ -256,13 +258,13 @@ export function ModalHorasTreinamento({
     if (!formData.data_ptr_ba) errors.data_ptr_ba = 'Data é obrigatória'
     if (!formData.equipe_id) errors.equipe_id = 'Equipe é obrigatória'
     if (!formData.hora_ptr_diaria || !validateTimeFormat(formData.hora_ptr_diaria)) {
-      errors.hora_ptr_diaria = 'Formato de tempo inválido (HH:MM:SS)'
+      errors.hora_ptr_diaria = 'Formato de tempo inválido (HH:MM:SS até 99:59:59)'
     }
 
     // Validar data não futura
     if (formData.data_ptr_ba) {
       const hoje = new Date()
-      const dataProvaSelecionada = new Date(formData.data_ptr_ba)
+      const dataProvaSelecionada = new Date(`${formData.data_ptr_ba}T00:00:00`)
       if (dataProvaSelecionada > hoje) {
         errors.data_ptr_ba = 'A data não pode ser futura'
       }
@@ -337,7 +339,7 @@ export function ModalHorasTreinamento({
 
         // Validar formato de tempo
         if (timeValue && !validateTimeFormat(timeValue)) {
-          errors[`${prefix}_hora_ptr_diaria`] = 'Formato de tempo inválido (HH:MM:SS)'
+          errors[`${prefix}_hora_ptr_diaria`] = 'Formato de tempo inválido (HH:MM:SS até 99:59:59)'
         }
       })
 
@@ -595,7 +597,7 @@ export function ModalHorasTreinamento({
                   <div>
                     <span className="font-medium text-gray-600">Data:</span>
                     <p className="text-black">
-                      {new Date(formData.data_ptr_ba).toLocaleDateString('pt-BR')}
+                      {new Date(`${formData.data_ptr_ba}T00:00:00`).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
                   <div>

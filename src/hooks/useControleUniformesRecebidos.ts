@@ -163,7 +163,7 @@ export const useControleUniformesRecebidos = () => {
         erros.data = 'Formato de data inválido';
       } else {
         // Validar se a data não é futura
-        const dataInformada = new Date(dados.data);
+        const dataInformada = new Date(`${dados.data}T00:00:00`);
         const hoje = new Date();
         hoje.setHours(23, 59, 59, 999); // Fim do dia atual
         

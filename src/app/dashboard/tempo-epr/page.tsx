@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -18,8 +18,11 @@ import {
   Area
 } from 'recharts'
 
-import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useDashboardData } from '@/hooks/useDashboardData'
+import BaseFilter from '@/components/filters/BaseFilter'
+import EquipeFilter from '@/components/filters/EquipeFilter'
+import MesReferenciaFilter from '@/components/filters/MesReferenciaFilter'
 
 interface TempoEPRRegistro {
   secao_id: string | null
@@ -33,13 +36,13 @@ interface TempoEPRRegistro {
 }
 
 const monthFormatter = new Intl.DateTimeFormat('pt-BR', { month: 'long' })
-const areaColor = '#2563eb'
+const areaColor = '#fb923c'
 const legendColors = {
-  Ideal: '#22c55e',
-  Tolerável: '#f59e0b',
-  Reprovado: '#ef4444'
+  Ideal: '#fb923c',
+  Tolerável: '#f97316',
+  Reprovado: '#ea580c'
 } as const
-const donutColors = [legendColors.Ideal, legendColors.Tolerável, legendColors.Reprovado]
+const donutColors = ['#fb923c', '#f97316', '#ea580c', '#c2410c']
 
 function tempoToSeconds(tempo?: string | null): number {
   if (!tempo) return 0
@@ -79,75 +82,104 @@ function normalizarStatus(status?: string | null): keyof typeof legendColors {
 
 export default function TempoEPRDashboard() {
   const { user } = useAuth()
-  const [registros, setRegistros] = useState<Array<TempoEPRRegistro & { desempenho: number }>>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [selectedMes, setSelectedMes] = useState<string>('todos')
   const [selectedEquipe, setSelectedEquipe] = useState<string>('todos')
   const [selectedNome, setSelectedNome] = useState<string>('todos')
+  const [selectedBase, setSelectedBase] = useState<string | null>(null)
+  
+  // Filtros padronizados
+  const [selectedEquipes, setSelectedEquipes] = useState<string[]>([])
+  const [selectedMesRef, setSelectedMesRef] = useState<string | null>(null)
 
-  const secaoId = user?.profile?.secao_id
+  const isGestorPOP = user?.profile?.perfil === 'gestor_pop'
   const isBace = user?.profile?.perfil === 'ba_ce'
-  const nomeBase = user?.profile?.secao?.nome ?? 'Base não identificada'
+  const isGerenteSecao = user?.profile?.perfil === 'gerente_secao'
+  
+  // Determinar secaoId para filtro de equipes
+  const secaoIdParaEquipes = isGestorPOP 
+    ? selectedBase 
+    : (isBace || isGerenteSecao) 
+      ? (user?.profile?.secao_id ?? user?.profile?.secao?.id)
+      : undefined
 
+  // Memoizar a função de filtros
+  const additionalFilters = useMemo(() => {
+    return (query: any) => {
+      // Filtro por base (Gestor POP)
+      if (isGestorPOP && selectedBase) {
+        query = query.eq('secao_id', selectedBase)
+      }
+      
+      // Filtro por seção (BA-CE e Gerente de Seção)
+      if ((isBace || isGerenteSecao) && user?.profile?.secao_id) {
+        query = query.eq('secao_id', user.profile.secao_id)
+      }
+      
+      // Filtro por equipes (padronizado)
+      if (selectedEquipes.length > 0) {
+        query = query.in('equipe_id', selectedEquipes)
+      }
+      
+      // Filtro por mês de referência
+      if (selectedMesRef) {
+        const [ano, mes] = selectedMesRef.split('-')
+        const anoNum = parseInt(ano, 10)
+        const mesNum = parseInt(mes, 10)
+        const startDate = new Date(anoNum, mesNum - 1, 1).toISOString().split('T')[0]
+        const endDate = new Date(anoNum, mesNum, 0).toISOString().split('T')[0]
+        query = query.gte('data_exercicio_epr', startDate)
+        query = query.lte('data_exercicio_epr', endDate)
+      }
+      
+      return query
+    }
+  }, [isGestorPOP, isBace, isGerenteSecao, selectedBase, selectedEquipes, selectedMesRef, user?.profile?.secao_id])
+
+  // Usar hook unificado para carregamento de dados
+  // O hook já aplica automaticamente o filtro por base do usuário
+  const { 
+    data: registrosRaw, 
+    loading, 
+    error, 
+    refetch,
+    isReady 
+  } = useDashboardData<TempoEPRRegistro>({
+    tableName: 'tempo_epr',
+    selectFields: 'secao_id, equipe_id, nome_cidade, data_exercicio_epr, nome_completo, tempo_epr, status, equipe',
+    orderBy: { column: 'data_exercicio_epr', ascending: false },
+    limit: 1000,
+    cacheKey: `tempo-epr-${selectedBase || 'all'}-${selectedEquipes.join(',')}-${selectedMesRef || 'all'}-${isGestorPOP ? 'pop' : 'user'}`,
+    additionalFilters
+  })
+
+  // Quando os filtros mudarem, recarregar os dados
   useEffect(() => {
-    let isMounted = true
-
-    const load = async () => {
-      if (isBace && !secaoId) {
-        setError('Não foi possível identificar a base do usuário.')
-        setLoading(false)
-        return
-      }
-
-      setLoading(true)
-      setError(null)
-
-      try {
-        let query = supabase
-          .from('tempo_epr')
-          .select('secao_id, equipe_id, nome_cidade, data_exercicio_epr, nome_completo, tempo_epr, status, equipe')
-          .order('data_exercicio_epr', { ascending: false })
-
-        if (isBace && secaoId) {
-          query = query.eq('secao_id', secaoId)
-        }
-
-        const { data, error: supabaseError } = await query
-
-        if (supabaseError) {
-          console.error('Erro Supabase tempo_epr:', supabaseError)
-          throw supabaseError
-        }
-
-        if (!isMounted) return
-
-        const registrosComDesempenho = (data as TempoEPRRegistro[] | null)?.map((registro) => {
-          const tempoSegundos = tempoToSeconds(registro.tempo_epr)
-          return {
-            ...registro,
-            desempenho: calcularDesempenho(tempoSegundos)
-          }
-        })
-
-        setRegistros(registrosComDesempenho ?? [])
-      } catch (err) {
-        if (!isMounted) return
-        console.error('Erro ao carregar Tempo EPR:', err)
-        setError(err instanceof Error ? err.message : 'Erro ao carregar dados do Tempo EPR.')
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
+    if (isReady && (isGestorPOP || isBace || isGerenteSecao)) {
+      refetch()
     }
-
-    load()
-
-    return () => {
-      isMounted = false
+  }, [selectedBase, selectedEquipes, selectedMesRef, isReady, isGestorPOP, isBace, isGerenteSecao, refetch])
+  
+  // Limpar filtro de equipes quando a base mudar
+  const previousBaseRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (previousBaseRef.current !== selectedBase) {
+      setSelectedEquipes([])
+      previousBaseRef.current = selectedBase
     }
-  }, [isBace, secaoId])
+  }, [selectedBase])
+
+  // Adicionar desempenho aos registros
+  const registros = useMemo(() => {
+    return registrosRaw.map((registro) => {
+      const tempoSegundos = tempoToSeconds(registro.tempo_epr)
+      return {
+        ...registro,
+        desempenho: calcularDesempenho(tempoSegundos)
+      }
+    })
+  }, [registrosRaw])
+
+  const nomeBase = user?.profile?.secao?.nome ?? 'Base não identificada'
 
   const registrosValidos = useMemo(() => {
     return registros.filter((registro) => {
@@ -400,14 +432,39 @@ export default function TempoEPRDashboard() {
   return (
     <div className="space-y-6 pb-12">
       <div>
-        <h2 className="text-xl font-semibold text-gray-800">Tempo de Vestimenta Individual (Tempo EPR)</h2>
-        <p className="text-sm text-[#7a5b3e]/80">
+        <h2 className="text-2xl font-bold text-[#1f1f1f]">Tempo de Vestimenta Individual (Tempo EPR)</h2>
+        <p className="text-sm text-[#1f1f1f]/70 mt-1">
           {isBace ? `Resultados agregados da base ${nomeBase}.` : 'Visão geral dos tempos registrados nas bases.'}
         </p>
       </div>
 
+      {/* Filtros */}
+      {(isGestorPOP || isBace || isGerenteSecao) && (
+        <div className="bg-white rounded-lg border border-orange-200 p-4 shadow-sm">
+          <div className="flex flex-wrap items-end gap-4">
+            {isGestorPOP && (
+              <BaseFilter
+                selectedBase={selectedBase}
+                onBaseChange={setSelectedBase}
+              />
+            )}
+            {((isGestorPOP && selectedBase) || ((isBace || isGerenteSecao) && user?.profile?.secao_id)) && (
+              <EquipeFilter
+                selectedEquipes={selectedEquipes}
+                onEquipeChange={setSelectedEquipes}
+                secaoId={secaoIdParaEquipes}
+              />
+            )}
+            <MesReferenciaFilter
+              selectedMes={selectedMesRef}
+              onMesChange={setSelectedMesRef}
+            />
+          </div>
+        </div>
+      )}
+
       {loading ? (
-        <div className="flex items-center justify-center rounded-2xl border border-orange-200 bg-white p-12 text-[#ff6600]">
+        <div className="flex items-center justify-center rounded-2xl border border-orange-200 bg-white p-12 text-primary">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           Carregando dados do Tempo EPR...
         </div>
@@ -418,7 +475,7 @@ export default function TempoEPRDashboard() {
         </div>
       ) : registrosAgrupados.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 p-10 text-center text-[#7a5b3e]">
-          <p className="text-lg font-semibold text-[#ff6600]">Ainda não há registros de Tempo EPR.</p>
+          <p className="text-lg font-semibold text-primary">Ainda não há registros de Tempo EPR.</p>
           <p className="mt-2 text-sm">Assim que novos registros forem inseridos, os indicadores serão exibidos aqui.</p>
         </div>
       ) : (
@@ -471,74 +528,89 @@ export default function TempoEPRDashboard() {
                 </select>
               </div>
             </div>
-            <div className="rounded-xl border border-orange-100 bg-orange-50 p-4 text-sm text-[#374151]">
+            <div className="rounded-xl bg-gradient-to-br from-[#fb923c] to-[#f97316] p-4 text-sm text-white shadow-lg">
               <p>
-                Exibindo <span className="font-semibold text-[#ff6600]">{registrosFiltrados.length}</span> registros filtrados.
+                Exibindo <span className="font-semibold">{registrosFiltrados.length}</span> registros filtrados.
               </p>
-              <p>Utilize os filtros para alternar entre a visão geral e a visão individual.</p>
+              <p className="text-white/80">Utilize os filtros para alternar entre a visão geral e a visão individual.</p>
+            </div>
+          </div>
+
+          {/* Cards no topo - Laranja */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+            <div className="rounded-xl bg-gradient-to-br from-[#fb923c] to-[#f97316] p-6 text-white shadow-lg">
+              <p className="text-sm font-medium uppercase tracking-wide text-white/90">Tempo mínimo</p>
+              <p className="mt-2 text-4xl font-black">{tempoMinimo}</p>
+              <p className="mt-1 text-xs text-white/80">Melhor tempo registrado</p>
+            </div>
+            <div className="rounded-xl bg-gradient-to-br from-[#fb923c] to-[#f97316] p-6 text-white shadow-lg">
+              <p className="text-sm font-medium uppercase tracking-wide text-white/90">Tempo médio</p>
+              <p className="mt-2 text-4xl font-black">{tempoMedio}</p>
+              <p className="mt-1 text-xs text-white/80">Média de todos os registros</p>
+            </div>
+            <div className="rounded-xl bg-gradient-to-br from-[#fb923c] to-[#f97316] p-6 text-white shadow-lg">
+              <p className="text-sm font-medium uppercase tracking-wide text-white/90">Tempo máximo</p>
+              <p className="mt-2 text-4xl font-black">{tempoMaximo}</p>
+              <p className="mt-1 text-xs text-white/80">Maior tempo registrado</p>
             </div>
           </div>
 
           {/* Painel Geral */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <div className="space-y-4 rounded-2xl border border-orange-200 bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#7a5b3e]/70">Categorias</h3>
-              <ul className="space-y-3 text-sm text-[#374151]">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1f1f1f]/60">Categorias</h3>
+              <ul className="space-y-3 text-sm">
                 <li className="flex items-center gap-3">
                   <span className="inline-flex h-3 w-3 rounded-full" style={{ backgroundColor: legendColors.Ideal }} />
                   <div>
-                    <p className="font-semibold text-[#22c55e]">Ótimo</p>
-                    <p className="text-xs text-[#7a5b3e]/70">Tempo menor ou igual a 00:50</p>
+                    <p className="font-semibold text-[#1f1f1f]">Ótimo</p>
+                    <p className="text-xs text-[#1f1f1f]/60">Tempo menor ou igual a 00:50</p>
                   </div>
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="inline-flex h-3 w-3 rounded-full" style={{ backgroundColor: legendColors.Tolerável }} />
                   <div>
-                    <p className="font-semibold text-[#f59e0b]">Regular</p>
-                    <p className="text-xs text-[#7a5b3e]/70">Tempo entre 00:51 e 01:30</p>
+                    <p className="font-semibold text-[#1f1f1f]">Regular</p>
+                    <p className="text-xs text-[#1f1f1f]/60">Tempo entre 00:51 e 01:30</p>
                   </div>
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="inline-flex h-3 w-3 rounded-full" style={{ backgroundColor: legendColors.Reprovado }} />
                   <div>
-                    <p className="font-semibold text-[#ef4444]">Ruim</p>
-                    <p className="text-xs text-[#7a5b3e]/70">Tempo acima de 01:30</p>
+                    <p className="font-semibold text-[#1f1f1f]">Ruim</p>
+                    <p className="text-xs text-[#1f1f1f]/60">Tempo acima de 01:30</p>
                   </div>
                 </li>
               </ul>
-              <div className="grid grid-cols-1 gap-3 text-center md:grid-cols-3">
-                <div className="rounded-xl border border-orange-100 bg-orange-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#7a5b3e]/70">Tempo mínimo</p>
-                  <p className="mt-1 text-2xl font-semibold text-[#16a34a]">{tempoMinimo}</p>
-                </div>
-                <div className="rounded-xl border border-orange-100 bg-orange-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#7a5b3e]/70">Tempo médio</p>
-                  <p className="mt-1 text-2xl font-semibold text-[#2563eb]">{tempoMedio}</p>
-                </div>
-                <div className="rounded-xl border border-orange-100 bg-orange-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#7a5b3e]/70">Tempo máximo</p>
-                  <p className="mt-1 text-2xl font-semibold text-[#ef4444]">{tempoMaximo}</p>
-                </div>
-              </div>
             </div>
 
             <div className="xl:col-span-2 rounded-2xl border border-orange-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-[#ff6600]">Evolução por mês</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-[#1f1f1f]">Evolução por mês</h3>
               </div>
               <div className="mt-4 h-72 w-full">
                 <ResponsiveContainer>
                   <AreaChart data={evolucaoPorMes}>
                     <defs>
                       <linearGradient id="tempoMedio" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={areaColor} stopOpacity={0.7} />
+                        <stop offset="5%" stopColor={areaColor} stopOpacity={0.6} />
                         <stop offset="95%" stopColor={areaColor} stopOpacity={0.05} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#bfdbfe" />
-                    <XAxis dataKey="mes" stroke="#1f2937" tick={{ fontSize: 12 }} />
-                    <YAxis stroke="#1f2937" tick={{ fontSize: 12 }} tickFormatter={(value) => secondsToMMSS(value)} domain={[0, 'dataMax + 20']} />
-                    <Tooltip formatter={(value: number) => [secondsToMMSS(value), 'Tempo médio']} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" strokeOpacity={0.3} />
+                    <XAxis dataKey="mes" stroke="#1f1f1f" tick={{ fontSize: 12, fill: '#1f1f1f' }} />
+                    <YAxis stroke="#1f1f1f" tick={{ fontSize: 12, fill: '#1f1f1f' }} tickFormatter={(value) => secondsToMMSS(value)} domain={[0, 'dataMax + 20']} />
+                    <Tooltip 
+                      formatter={(value: number) => [secondsToMMSS(value), 'Tempo médio']}
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        borderRadius: 12,
+                        border: '1px solid #fb923c',
+                        boxShadow: '0 4px 12px rgba(251, 146, 60, 0.2)',
+                        color: '#1f1f1f'
+                      }}
+                      labelStyle={{ color: '#1f1f1f', fontWeight: 600 }}
+                    />
                     <Area type="monotone" dataKey="tempoSegundos" stroke={areaColor} strokeWidth={2} fill="url(#tempoMedio)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -549,18 +621,28 @@ export default function TempoEPRDashboard() {
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <div className="rounded-2xl border border-orange-200 bg-white p-6 shadow-sm">
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-[#ff6600]">Desempenho por base</h3>
+                <h3 className="text-lg font-semibold text-[#1f1f1f]">Desempenho por base</h3>
               </div>
               <div className="h-72 w-full">
                 <ResponsiveContainer>
                   <BarChart data={desempenhoPorBase} layout="vertical" margin={{ top: 10, right: 40, left: 80, bottom: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
-                    <XAxis type="number" domain={[0, 100]} stroke="#1f2937" tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}%`} />
-                    <YAxis dataKey="base" type="category" stroke="#1f2937" tick={{ fontSize: 12 }} width={120} />
-                    <Tooltip formatter={(value: number, name: string) => [`${value}%`, name]} />
-                    <Bar dataKey="ideal" stackId="a" fill={legendColors.Ideal} name="Ótimo" barSize={18} />
-                    <Bar dataKey="toleravel" stackId="a" fill={legendColors.Tolerável} name="Regular" barSize={18} />
-                    <Bar dataKey="reprovado" stackId="a" fill={legendColors.Reprovado} name="Ruim" barSize={18} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" strokeOpacity={0.3} />
+                    <XAxis type="number" domain={[0, 100]} stroke="#1f1f1f" tick={{ fontSize: 12, fill: '#1f1f1f' }} tickFormatter={(value) => `${value}%`} />
+                    <YAxis dataKey="base" type="category" stroke="#1f1f1f" tick={{ fontSize: 12, fill: '#1f1f1f' }} width={120} />
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [`${value}%`, name]}
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        borderRadius: 12,
+                        border: '1px solid #fb923c',
+                        boxShadow: '0 4px 12px rgba(251, 146, 60, 0.2)',
+                        color: '#1f1f1f'
+                      }}
+                      labelStyle={{ color: '#1f1f1f', fontWeight: 600 }}
+                    />
+                    <Bar dataKey="ideal" stackId="a" fill={legendColors.Ideal} name="Ótimo" barSize={18} radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="toleravel" stackId="a" fill={legendColors.Tolerável} name="Regular" barSize={18} radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="reprovado" stackId="a" fill={legendColors.Reprovado} name="Ruim" barSize={18} radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -568,46 +650,56 @@ export default function TempoEPRDashboard() {
 
             <div className="rounded-2xl border border-orange-200 bg-white p-6 shadow-sm">
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-[#ff6600]">Desempenho por equipe</h3>
+                <h3 className="text-lg font-semibold text-[#1f1f1f]">Desempenho por equipe</h3>
               </div>
               <div className="h-72 w-full">
                 <ResponsiveContainer>
                   <BarChart data={desempenhoPorEquipe} layout="vertical" margin={{ top: 10, right: 40, left: 80, bottom: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
-                    <XAxis type="number" domain={[0, 100]} stroke="#1f2937" tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}%`} />
-                    <YAxis dataKey="equipe" type="category" stroke="#1f2937" tick={{ fontSize: 12 }} width={110} />
-                    <Tooltip formatter={(value: number, name: string) => [`${value}%`, name]} />
-                    <Bar dataKey="ideal" stackId="a" fill={legendColors.Ideal} name="Ótimo" barSize={18} />
-                    <Bar dataKey="toleravel" stackId="a" fill={legendColors.Tolerável} name="Regular" barSize={18} />
-                    <Bar dataKey="reprovado" stackId="a" fill={legendColors.Reprovado} name="Ruim" barSize={18} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" strokeOpacity={0.3} />
+                    <XAxis type="number" domain={[0, 100]} stroke="#1f1f1f" tick={{ fontSize: 12, fill: '#1f1f1f' }} tickFormatter={(value) => `${value}%`} />
+                    <YAxis dataKey="equipe" type="category" stroke="#1f1f1f" tick={{ fontSize: 12, fill: '#1f1f1f' }} width={110} />
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [`${value}%`, name]}
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        borderRadius: 12,
+                        border: '1px solid #fb923c',
+                        boxShadow: '0 4px 12px rgba(251, 146, 60, 0.2)',
+                        color: '#1f1f1f'
+                      }}
+                      labelStyle={{ color: '#1f1f1f', fontWeight: 600 }}
+                    />
+                    <Bar dataKey="ideal" stackId="a" fill={legendColors.Ideal} name="Ótimo" barSize={18} radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="toleravel" stackId="a" fill={legendColors.Tolerável} name="Regular" barSize={18} radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="reprovado" stackId="a" fill={legendColors.Reprovado} name="Ruim" barSize={18} radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-orange-200 bg-white shadow-sm">
-            <div className="border-b border-orange-100 px-6 py-4">
-              <h3 className="text-lg font-semibold text-[#ff6600]">Resumo mensal por base e equipe</h3>
-              <p className="text-xs text-[#7a5b3e]/70">Tempo médio calculado por mês, base e equipe, considerando os filtros atuais.</p>
+          <div className="rounded-2xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border px-6 py-4 bg-muted/30">
+              <h3 className="text-lg font-semibold text-foreground">Resumo mensal por base e equipe</h3>
+              <p className="text-xs text-muted-foreground">Tempo médio calculado por mês, base e equipe, considerando os filtros atuais.</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-orange-100 text-sm">
-                <thead className="bg-orange-50 text-xs uppercase tracking-wide text-orange-700">
+              <table className="min-w-full divide-y divide-border text-sm">
+                <thead className="bg-muted text-xs uppercase tracking-wide text-foreground">
                   <tr>
-                    <th className="px-4 py-2 text-left">Base</th>
-                    <th className="px-4 py-2 text-left">Equipe</th>
-                    <th className="px-4 py-2 text-left">Mês</th>
-                    <th className="px-4 py-2 text-left">Tempo médio</th>
+                    <th className="px-4 py-3 text-left font-semibold">Base</th>
+                    <th className="px-4 py-3 text-left font-semibold">Equipe</th>
+                    <th className="px-4 py-3 text-left font-semibold">Mês</th>
+                    <th className="px-4 py-3 text-left font-semibold">Tempo médio</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-orange-50">
+                <tbody className="divide-y divide-border bg-card">
                   {tabelaGeral.map((linha) => (
-                    <tr key={`${linha.base}-${linha.equipe}-${linha.mes}`} className="hover:bg-orange-50/40">
-                      <td className="px-4 py-3 text-[#1f1f1f]">{linha.base}</td>
-                      <td className="px-4 py-3 text-[#7a5b3e]/80">{linha.equipe}</td>
-                      <td className="px-4 py-3 text-[#7a5b3e]/80">{linha.mes}</td>
-                      <td className="px-4 py-3 text-[#7a5b3e]/80">{linha.tempoMedio}</td>
+                    <tr key={`${linha.base}-${linha.equipe}-${linha.mes}`} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-4 py-3 text-foreground font-medium">{linha.base}</td>
+                      <td className="px-4 py-3 text-foreground/80">{linha.equipe}</td>
+                      <td className="px-4 py-3 text-foreground/80">{linha.mes}</td>
+                      <td className="px-4 py-3 text-foreground/80 font-medium">{linha.tempoMedio}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -619,7 +711,7 @@ export default function TempoEPRDashboard() {
           {selectedNome !== 'todos' && (
             <div className="space-y-6">
               <div className="rounded-2xl border border-orange-200 bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-[#ff6600]">Evolução individual</h3>
+                <h3 className="text-lg font-semibold text-[#1f1f1f]">Evolução individual</h3>
                 <div className="mt-4 h-72 w-full">
                   <ResponsiveContainer>
                     <AreaChart data={registrosIndividuais.map((item) => ({
@@ -628,47 +720,57 @@ export default function TempoEPRDashboard() {
                     }))}>
                       <defs>
                         <linearGradient id="tempoIndividual" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={areaColor} stopOpacity={0.7} />
+                          <stop offset="5%" stopColor={areaColor} stopOpacity={0.6} />
                           <stop offset="95%" stopColor={areaColor} stopOpacity={0.05} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#bfdbfe" />
-                      <XAxis dataKey="mes" stroke="#1f2937" tick={{ fontSize: 12 }} />
-                      <YAxis stroke="#1f2937" tick={{ fontSize: 12 }} tickFormatter={(value) => secondsToMMSS(value)} domain={[0, 'dataMax + 20']} />
-                      <Tooltip formatter={(value: number) => [secondsToMMSS(value), 'Tempo']} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" strokeOpacity={0.3} />
+                      <XAxis dataKey="mes" stroke="#1f1f1f" tick={{ fontSize: 12, fill: '#1f1f1f' }} />
+                      <YAxis stroke="#1f1f1f" tick={{ fontSize: 12, fill: '#1f1f1f' }} tickFormatter={(value) => secondsToMMSS(value)} domain={[0, 'dataMax + 20']} />
+                      <Tooltip 
+                        formatter={(value: number) => [secondsToMMSS(value), 'Tempo']}
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          borderRadius: 12,
+                          border: '1px solid #fb923c',
+                          boxShadow: '0 4px 12px rgba(251, 146, 60, 0.2)',
+                          color: '#1f1f1f'
+                        }}
+                        labelStyle={{ color: '#1f1f1f', fontWeight: 600 }}
+                      />
                       <Area type="monotone" dataKey="tempoSegundos" stroke={areaColor} strokeWidth={2} fill="url(#tempoIndividual)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-orange-200 bg-white shadow-sm">
-                <div className="border-b border-orange-100 px-6 py-4">
-                  <h3 className="text-lg font-semibold text-[#ff6600]">Histórico do colaborador</h3>
-                  <p className="text-xs text-[#7a5b3e]/70">Registros ordenados do mais recente para o mais antigo</p>
+              <div className="rounded-2xl border border-border bg-card shadow-sm">
+                <div className="border-b border-border px-6 py-4 bg-muted/30">
+                  <h3 className="text-lg font-semibold text-foreground">Histórico do colaborador</h3>
+                  <p className="text-xs text-muted-foreground">Registros ordenados do mais recente para o mais antigo</p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-orange-100 text-sm">
-                    <thead className="bg-orange-50 text-xs uppercase tracking-wide text-orange-700">
+                  <table className="min-w-full divide-y divide-border text-sm">
+                    <thead className="bg-muted text-xs uppercase tracking-wide text-foreground">
                       <tr>
-                        <th className="px-4 py-2 text-left">Nome</th>
-                        <th className="px-4 py-2 text-left">Mês</th>
-                        <th className="px-4 py-2 text-left">Base</th>
-                        <th className="px-4 py-2 text-left">Equipe</th>
-                        <th className="px-4 py-2 text-left">Tempo</th>
-                        <th className="px-4 py-2 text-left">Desempenho</th>
-                        <th className="px-4 py-2 text-left">Status</th>
+                        <th className="px-4 py-3 text-left font-semibold">Nome</th>
+                        <th className="px-4 py-3 text-left font-semibold">Mês</th>
+                        <th className="px-4 py-3 text-left font-semibold">Base</th>
+                        <th className="px-4 py-3 text-left font-semibold">Equipe</th>
+                        <th className="px-4 py-3 text-left font-semibold">Tempo</th>
+                        <th className="px-4 py-3 text-left font-semibold">Desempenho</th>
+                        <th className="px-4 py-3 text-left font-semibold">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-orange-50">
+                    <tbody className="divide-y divide-border bg-card">
                       {registrosIndividuais.map((registro) => (
-                        <tr key={`${registro.nome_completo}-${registro.data_exercicio_epr}`} className="hover:bg-orange-50/40">
-                          <td className="px-4 py-3 text-[#1f1f1f]">{registro.nome_completo ?? '—'}</td>
-                          <td className="px-4 py-3 text-[#7a5b3e]/80">{registro.mesRealizado}</td>
-                          <td className="px-4 py-3 text-[#7a5b3e]/80">{registro.nome_cidade ?? '—'}</td>
-                          <td className="px-4 py-3 text-[#7a5b3e]/80">{registro.equipe ?? '—'}</td>
-                          <td className="px-4 py-3 text-[#7a5b3e]/80">{registro.tempoFormatado}</td>
-                          <td className="px-4 py-3 text-[#7a5b3e]/80">{registro.desempenhoNota}</td>
+                        <tr key={`${registro.nome_completo}-${registro.data_exercicio_epr}`} className="hover:bg-muted/50 transition-colors">
+                          <td className="px-4 py-3 text-foreground font-medium">{registro.nome_completo ?? '—'}</td>
+                          <td className="px-4 py-3 text-foreground/80">{registro.mesRealizado}</td>
+                          <td className="px-4 py-3 text-foreground/80">{registro.nome_cidade ?? '—'}</td>
+                          <td className="px-4 py-3 text-foreground/80">{registro.equipe ?? '—'}</td>
+                          <td className="px-4 py-3 text-foreground/80 font-medium">{registro.tempoFormatado}</td>
+                          <td className="px-4 py-3 text-foreground/80 font-medium">{registro.desempenhoNota}</td>
                           <td className="px-4 py-3">
                             <span
                               className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"

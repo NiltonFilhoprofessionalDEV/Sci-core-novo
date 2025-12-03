@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import {
   ResponsiveContainer,
   LineChart,
@@ -13,8 +13,12 @@ import {
 import { AlertCircle, Loader2, MapPinned, Clock, ChevronDown, Timer, Target } from 'lucide-react'
 
 import DateRangeFilter from '@/components/filters/DateRangeFilter'
+import BaseFilter from '@/components/filters/BaseFilter'
+import EquipeFilter from '@/components/filters/EquipeFilter'
+import MesReferenciaFilter from '@/components/filters/MesReferenciaFilter'
 import { useAuth } from '@/hooks/useAuth'
 import { useTempoResposta, TempoRespostaData } from '@/hooks/useTempoResposta'
+import { useDebounce } from '@/hooks/useDebounce'
 import { getPermissoes } from '@/types/auth'
 
 type FiltroOpcao = {
@@ -47,7 +51,7 @@ const formatDateDisplay = (dataISO: string | null | undefined): string => {
 }
 
 export default function TempoRespostaDashboard() {
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
   const permissoes = useMemo(() => getPermissoes(profile), [profile])
 
   const {
@@ -74,8 +78,64 @@ export default function TempoRespostaDashboard() {
   const [selectedLocal, setSelectedLocal] = useState<string>('todos')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
+  
+  // Filtros padronizados
+  const [selectedBase, setSelectedBase] = useState<string | null>(null)
+  const [selectedEquipes, setSelectedEquipes] = useState<string[]>([])
+  const [selectedMes, setSelectedMes] = useState<string | null>(null)
+  
+  // Debounce para filtros de data (evita múltiplas requisições)
+  const debouncedStartDate = useDebounce(startDate, 500)
+  const debouncedEndDate = useDebounce(endDate, 500)
 
   const canSelecionarSecao = permissoes.podeVerTodasSecoes
+  
+  const isGestorPOP = user?.profile?.perfil === 'gestor_pop'
+  const isBace = user?.profile?.perfil === 'ba_ce'
+  const isGerenteSecao = user?.profile?.perfil === 'gerente_secao'
+  
+  // Determinar secaoId para filtro de equipes
+  const secaoIdParaEquipes = isGestorPOP 
+    ? selectedBase 
+    : (isBace || isGerenteSecao) 
+      ? (user?.profile?.secao_id ?? user?.profile?.secao?.id)
+      : undefined
+  
+  // Sincronizar selectedSecao com selectedBase para Gestor POP
+  useEffect(() => {
+    if (isGestorPOP) {
+      if (selectedBase) {
+        setSelectedSecao(selectedBase)
+      } else {
+        setSelectedSecao('todas')
+      }
+    }
+  }, [selectedBase, isGestorPOP])
+  
+  // Sincronizar selectedEquipe com selectedEquipes
+  useEffect(() => {
+    if (selectedEquipes.length === 0) {
+      setSelectedEquipe('todas')
+    } else if (selectedEquipes.length === 1) {
+      setSelectedEquipe(selectedEquipes[0])
+    }
+  }, [selectedEquipes])
+  
+  // Aplicar filtro de mês de referência
+  useEffect(() => {
+    if (selectedMes) {
+      const [ano, mes] = selectedMes.split('-')
+      const anoNum = parseInt(ano, 10)
+      const mesNum = parseInt(mes, 10)
+      const startDateStr = new Date(anoNum, mesNum - 1, 1).toISOString().split('T')[0]
+      const endDateStr = new Date(anoNum, mesNum, 0).toISOString().split('T')[0]
+      setStartDate(startDateStr)
+      setEndDate(endDateStr)
+    } else {
+      setStartDate('')
+      setEndDate('')
+    }
+  }, [selectedMes])
 
   useEffect(() => {
     if (!canSelecionarSecao && profile?.secao_id) {
@@ -85,37 +145,57 @@ export default function TempoRespostaDashboard() {
 
   useEffect(() => {
     let ativo = true
+    let abortController: AbortController | null = null
+    let loadTimeout: NodeJS.Timeout | null = null
 
     const carregar = async () => {
+      // Cancelar requisição anterior se existir
+      if (abortController) {
+        abortController.abort()
+      }
+      abortController = new AbortController()
+
       setIsFetching(true)
       setFetchError(null)
       try {
+        // O hook useTempoResposta já tem timeout interno de 30 segundos
         const resultados = await fetchTempoResposta({
           secaoId: selectedSecao === 'todas' ? undefined : selectedSecao,
           equipeId: selectedEquipe === 'todas' ? undefined : selectedEquipe,
-          dataInicio: startDate || undefined,
-          dataFim: endDate || undefined,
+          dataInicio: debouncedStartDate || undefined,
+          dataFim: debouncedEndDate || undefined,
         })
 
-        if (!ativo) return
-        setDados(resultados as TempoRespostaData[])
+        if (abortController.signal.aborted || !ativo) return
+        setDados(resultados)
       } catch (erro) {
-        if (!ativo) return
+        if (abortController.signal.aborted || !ativo) return
         console.error('Erro ao carregar tempo resposta:', erro)
         setFetchError('Não foi possível carregar os dados de tempo de resposta.')
       } finally {
-        if (ativo) {
+        if (ativo && !abortController.signal.aborted) {
           setIsFetching(false)
         }
       }
     }
 
-    carregar()
+    // Debounce: aguardar 300ms antes de carregar para evitar múltiplas chamadas
+    loadTimeout = setTimeout(() => {
+      if (ativo) {
+        carregar()
+      }
+    }, 300)
 
     return () => {
       ativo = false
+      if (abortController) {
+        abortController.abort()
+      }
+      if (loadTimeout) {
+        clearTimeout(loadTimeout)
+      }
     }
-  }, [fetchTempoResposta, selectedSecao, selectedEquipe, startDate, endDate])
+  }, [fetchTempoResposta, selectedSecao, selectedEquipe, debouncedStartDate, debouncedEndDate])
 
   useEffect(() => {
     setSelectedEquipe('todas')
@@ -349,12 +429,37 @@ export default function TempoRespostaDashboard() {
   return (
     <div className="space-y-6 pb-12">
       <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-semibold text-[#ff6600]">Tempo de Resposta</h2>
-        <p className="text-sm text-[#7a5b3e]/80">
+        <h2 className="text-2xl font-bold text-[#1f1f1f]">Tempo de Resposta</h2>
+        <p className="text-sm text-[#1f1f1f]/70 mt-1">
           Acompanhe o desempenho das equipes nos exercícios de tempo de resposta, filtrando por base,
           período, CCI utilizado e local da aferição.
         </p>
       </div>
+
+      {/* Filtros Padronizados */}
+      {(isGestorPOP || isBace || isGerenteSecao) && (
+        <div className="bg-white rounded-lg border border-orange-200 p-4 shadow-sm">
+          <div className="flex flex-wrap items-end gap-4">
+            {isGestorPOP && (
+              <BaseFilter
+                selectedBase={selectedBase}
+                onBaseChange={setSelectedBase}
+              />
+            )}
+            {((isGestorPOP && selectedBase) || ((isBace || isGerenteSecao) && user?.profile?.secao_id)) && (
+              <EquipeFilter
+                selectedEquipes={selectedEquipes}
+                onEquipeChange={setSelectedEquipes}
+                secaoId={secaoIdParaEquipes}
+              />
+            )}
+            <MesReferenciaFilter
+              selectedMes={selectedMes}
+              onMesChange={setSelectedMes}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-orange-200 bg-white p-5 shadow-sm space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -368,7 +473,7 @@ export default function TempoRespostaDashboard() {
                   value={selectedSecao}
                   onChange={(event) => setSelectedSecao(event.target.value)}
                   disabled={!canSelecionarSecao}
-                  className="w-full appearance-none rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm focus:border-[#ff6600] focus:outline-none focus:ring-2 focus:ring-orange-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  className="w-full appearance-none rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-orange-200 disabled:cursor-not-allowed disabled:bg-gray-100"
                 >
                   {opcoesSecao.map((opcao) => (
                     <option key={opcao.value} value={opcao.value}>
@@ -388,7 +493,7 @@ export default function TempoRespostaDashboard() {
                 <select
                   value={selectedEquipe}
                   onChange={(event) => setSelectedEquipe(event.target.value)}
-                  className="w-full appearance-none rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm focus:border-[#ff6600] focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  className="w-full appearance-none rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-orange-200"
                 >
                   {opcoesEquipe.map((opcao) => (
                     <option key={opcao.value} value={opcao.value}>
@@ -425,7 +530,7 @@ export default function TempoRespostaDashboard() {
                 <select
                   value={selectedCCI}
                   onChange={(event) => setSelectedCCI(event.target.value)}
-                  className="w-full appearance-none rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm focus:border-[#ff6600] focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  className="w-full appearance-none rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-orange-200"
                 >
                   {opcoesCCI.map((opcao) => (
                     <option key={opcao.value} value={opcao.value}>
@@ -445,7 +550,7 @@ export default function TempoRespostaDashboard() {
                 <select
                   value={selectedLocal}
                   onChange={(event) => setSelectedLocal(event.target.value)}
-                  className="w-full appearance-none rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm focus:border-[#ff6600] focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  className="w-full appearance-none rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-orange-200"
                 >
                   {opcoesLocal.map((opcao) => (
                     <option key={opcao.value} value={opcao.value}>
@@ -460,7 +565,7 @@ export default function TempoRespostaDashboard() {
         </div>
 
         {estadoCarregando ? (
-          <div className="flex items-center justify-center rounded-xl border border-dashed border-orange-200 bg-orange-50/40 p-10 text-[#ff6600]">
+          <div className="flex items-center justify-center rounded-xl border border-dashed border-orange-200 bg-orange-50/40 p-10 text-primary">
             <Loader2 className="mr-3 h-5 w-5 animate-spin" />
             Carregando dados do indicador...
           </div>
@@ -471,21 +576,46 @@ export default function TempoRespostaDashboard() {
           </div>
         ) : dadosFiltrados.length === 0 ? (
           <div className="rounded-xl border border-dashed border-orange-200 bg-orange-50/40 p-12 text-center">
-            <p className="text-lg font-semibold text-[#ff6600]">Nenhum registro encontrado</p>
+            <p className="text-lg font-semibold text-primary">Nenhum registro encontrado</p>
             <p className="mt-2 text-sm text-[#7a5b3e]">
               Ajuste os filtros ou registre novos dados para visualizar os indicadores.
             </p>
           </div>
         ) : (
           <>
+            {/* Cards no topo - Laranja */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+              <div className="rounded-xl bg-gradient-to-br from-[#fb923c] to-[#f97316] p-6 text-white shadow-lg">
+                <p className="text-sm font-medium uppercase tracking-wide text-white/90">Média geral</p>
+                <p className="mt-2 text-4xl font-black">
+                  {mediaGeral !== null ? formatSecondsToClock(mediaGeral) : '--:--'}
+                </p>
+                <p className="mt-1 text-xs text-white/80">Tempo médio de resposta</p>
+              </div>
+              <div className="rounded-xl bg-gradient-to-br from-[#fb923c] to-[#f97316] p-6 text-white shadow-lg">
+                <p className="text-sm font-medium uppercase tracking-wide text-white/90">Menor tempo</p>
+                <p className="mt-2 text-4xl font-black">
+                  {registroMenorTempo ? formatSecondsToClock(registroMenorTempo.segundos) : '--:--'}
+                </p>
+                <p className="mt-1 text-xs text-white/80">Melhor desempenho registrado</p>
+              </div>
+              <div className="rounded-xl bg-gradient-to-br from-[#fb923c] to-[#f97316] p-6 text-white shadow-lg">
+                <p className="text-sm font-medium uppercase tracking-wide text-white/90">Maior tempo</p>
+                <p className="mt-2 text-4xl font-black">
+                  {registroMaiorTempo ? formatSecondsToClock(registroMaiorTempo.segundos) : '--:--'}
+                </p>
+                <p className="mt-1 text-xs text-white/80">Maior tempo registrado</p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
               <div className="lg:col-span-2 rounded-2xl border border-orange-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-base font-semibold text-[#ff6600]">
+                    <h3 className="text-lg font-semibold text-[#1f1f1f]">
                       Evolução do tempo de resposta
                     </h3>
-                    <p className="text-xs text-[#7a5b3e]/70">
+                    <p className="text-xs text-[#1f1f1f]/60">
                       Médias mensais (HH:MM:SS) de acordo com os filtros selecionados.
                     </p>
                   </div>
@@ -493,66 +623,69 @@ export default function TempoRespostaDashboard() {
                 <div className="mt-4 h-72 w-full">
                   <ResponsiveContainer>
                     <LineChart data={serieTemporal}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" strokeOpacity={0.3} />
                       <XAxis
                         dataKey="mes"
-                        stroke="#b45309"
-                        tick={{ fontSize: 12 }}
-                        axisLine={{ stroke: '#fb923c' }}
+                        stroke="#1f1f1f"
+                        tick={{ fontSize: 12, fill: '#1f1f1f' }}
+                        axisLine={{ stroke: '#1f1f1f' }}
                       />
                       <YAxis
-                        stroke="#b45309"
-                        tick={{ fontSize: 12 }}
+                        stroke="#1f1f1f"
+                        tick={{ fontSize: 12, fill: '#1f1f1f' }}
                         tickFormatter={(valor: number) => formatSecondsToClock(valor)}
                         width={80}
-                        axisLine={{ stroke: '#fb923c' }}
+                        axisLine={{ stroke: '#1f1f1f' }}
                       />
                       <Tooltip
-                        cursor={{ stroke: '#fb923c', strokeWidth: 1 }}
+                        cursor={{ stroke: '#fb923c', strokeWidth: 2 }}
                         contentStyle={{
+                          backgroundColor: 'white',
                           borderRadius: 12,
-                          borderColor: '#fb923c',
-                          boxShadow: '0 10px 25px -15px rgba(249, 115, 22, 0.6)',
+                          border: '1px solid #fb923c',
+                          boxShadow: '0 4px 12px rgba(251, 146, 60, 0.2)',
+                          color: '#1f1f1f'
                         }}
                         formatter={(valor: number) => formatSecondsToClock(valor)}
+                        labelStyle={{ color: '#1f1f1f', fontWeight: 600 }}
                       />
                       <Line
                         type="monotone"
                         dataKey="mediaSegundos"
                         stroke="#fb923c"
                         strokeWidth={3}
-                        dot={{ r: 4, fill: '#fb923c' }}
-                        activeDot={{ r: 6, fill: '#fb923c' }}
+                        dot={{ r: 5, fill: '#fb923c', strokeWidth: 2, stroke: 'white' }}
+                        activeDot={{ r: 7, fill: '#fb923c', strokeWidth: 2, stroke: 'white' }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-orange-200 bg-white p-6 shadow-sm">
-                <h3 className="text-base font-semibold text-[#ff6600]">Resumo dos Registros</h3>
-                <div className="mt-4 space-y-4 text-sm text-gray-700">
-                  <div className="flex items-start gap-3 rounded-xl bg-[#ff6600]/5 p-3">
-                    <MapPinned className="h-5 w-5 text-[#ff6600]" />
+              <div className="rounded-xl bg-gradient-to-br from-[#fb923c] to-[#f97316] p-6 shadow-lg">
+                <h3 className="text-lg font-semibold text-white mb-4">Resumo dos Registros</h3>
+                <div className="space-y-4 text-sm">
+                  <div className="flex items-start gap-3 rounded-xl bg-white/20 backdrop-blur-sm p-4 border border-white/30">
+                    <MapPinned className="h-5 w-5 text-white flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-semibold text-white">
                         {opcoesSecao.find((opcao) => opcao.value === selectedSecao)?.label ||
                           'Base selecionada'}
                       </p>
-                      <p className="text-xs text-[#7a5b3e]/70">
+                      <p className="text-xs text-white/80 mt-1">
                         {selectedLocal === 'todos'
                           ? 'Todos os locais de aferição'
                           : `Local: ${selectedLocal}`}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 rounded-xl bg-[#ff6600]/5 p-3">
-                    <Clock className="h-5 w-5 text-[#ff6600]" />
+                  <div className="flex items-start gap-3 rounded-xl bg-white/20 backdrop-blur-sm p-4 border border-white/30">
+                    <Clock className="h-5 w-5 text-white flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-semibold text-white">
                         {dadosFiltrados.length} registro(s) encontrado(s)
                       </p>
-                      <p className="text-xs text-[#7a5b3e]/70">
+                      <p className="text-xs text-white/80 mt-1">
                         Período: {startDate ? formatDateDisplay(startDate) : 'Início indefinido'} -{' '}
                         {endDate ? formatDateDisplay(endDate) : 'Fim indefinido'}
                       </p>
@@ -562,19 +695,20 @@ export default function TempoRespostaDashboard() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-orange-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-orange-100 px-6 py-4">
+            {/* Tabela de detalhamento */}
+            <div className="rounded-2xl border border-border bg-card shadow-sm">
+              <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-muted/30">
                 <div>
-                  <h3 className="text-base font-semibold text-[#ff6600]">Registros detalhados</h3>
-                  <p className="text-xs text-[#7a5b3e]/70">
+                  <h3 className="text-lg font-semibold text-foreground">Registros detalhados</h3>
+                  <p className="text-xs text-muted-foreground">
                     Lista completa dos exercícios registrados com os filtros atuais.
                   </p>
                 </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-orange-100 text-sm">
+                <table className="min-w-full divide-y divide-border text-sm">
                   <thead>
-                    <tr className="bg-[#fff3e6] text-[#7a5b3e] uppercase text-xs tracking-wider">
+                    <tr className="bg-muted text-foreground uppercase text-xs tracking-wider">
                       <th className="px-4 py-3 text-left font-semibold">Base</th>
                       <th className="px-4 py-3 text-left font-semibold">Data do exercício</th>
                       <th className="px-4 py-3 text-left font-semibold">Equipe</th>
@@ -584,26 +718,27 @@ export default function TempoRespostaDashboard() {
                       <th className="px-4 py-3 text-left font-semibold">Tempo aferido</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-orange-50 bg-white">
+                  <tbody className="divide-y divide-border bg-card">
                     {dadosOrdenados.map((registro) => (
                       <tr
                         key={`${registro.id}-${registro.data_tempo_resposta}-${registro.nome_completo}`}
+                        className="hover:bg-muted/50 transition-colors"
                       >
-                        <td className="px-4 py-3 font-medium text-gray-900">
+                        <td className="px-4 py-3 font-medium text-foreground">
                           {registro.nome_cidade || 'Não informado'}
                         </td>
-                        <td className="px-4 py-3 text-gray-700">
+                        <td className="px-4 py-3 text-foreground/80">
                           {formatDateDisplay(registro.data_tempo_resposta)}
                         </td>
-                        <td className="px-4 py-3 text-gray-700">{registro.equipe || '-'}</td>
-                        <td className="px-4 py-3 text-gray-700">{registro.nome_completo || '-'}</td>
-                        <td className="px-4 py-3 text-gray-700">
+                        <td className="px-4 py-3 text-foreground/80">{registro.equipe || '-'}</td>
+                        <td className="px-4 py-3 text-foreground/80">{registro.nome_completo || '-'}</td>
+                        <td className="px-4 py-3 text-foreground/80">
                           {registro.local_posicionamento || '-'}
                         </td>
-                        <td className="px-4 py-3 text-gray-700">
+                        <td className="px-4 py-3 text-foreground/80">
                           {registro.cci_utilizado || 'Não informado'}
                         </td>
-                        <td className="px-4 py-3 font-mono text-gray-900">
+                        <td className="px-4 py-3 font-mono font-medium text-foreground">
                           {formatSecondsToClock(parseDurationToSeconds(registro.tempo_exercicio))}
                         </td>
                       </tr>

@@ -1,57 +1,83 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { 
+  Plane, 
+  AlertTriangle, 
+  Wrench, 
+  Cloud, 
+  GraduationCap, 
+  Clock, 
+  Truck, 
+  Timer, 
+  Zap, 
+  Droplets, 
+  RefreshCw, 
+  CheckCircle, 
+  Package,
+  Sparkles
+} from 'lucide-react'
+import { NavBar } from '@/components/ui/tubelight-navbar'
+import { useEffect, useState } from 'react'
 
 const indicatorTabs = [
-  { label: 'Ocorrências Aeronáuticas', href: '/dashboard/ocorrencias-aeronauticas' },
-  { label: 'Ocorrência Não Aeronáutica', href: '/dashboard/ocorrencia-nao-aeronautica' },
-  { label: 'Atividades Acessórias', href: '/dashboard/atividades-acessorias' },
-  { label: 'TAF', href: '/dashboard/taf' },
-  { label: 'PTR-BA - Prova Teórica', href: '/dashboard/ptr-ba-prova-teorica' },
-  { label: 'PTR-BA - Horas de Treinamento', href: '/dashboard/ptr-ba-horas-treinamento' },
-  { label: 'Inspeções de Viaturas', href: '/dashboard/inspecoes-viaturas' },
-  { label: 'Tempo EPR', href: '/dashboard/tempo-epr' },
-  { label: 'Tempo Resposta', href: '/dashboard/tempo-resposta' },
-  { label: 'Controle de Agentes Extintores', href: '/dashboard/controle-agentes-extintores' },
-  { label: 'Controle de Trocas', href: '/dashboard/controle-trocas' },
-  { label: 'Verificação de TPS', href: '/dashboard/verificacao-tps' },
-  { label: 'Higienização de TPS', href: '/dashboard/higienizacao-tps' },
-  { label: 'Controle de Uniformes Recebidos', href: '/dashboard/controle-uniformes-recebidos' }
+  { name: 'Ocorrências Aeronáuticas', url: '/dashboard/ocorrencias-aeronauticas', icon: Plane },
+  { name: 'Ocorrência Não Aeronáutica', url: '/dashboard/ocorrencia-nao-aeronautica', icon: AlertTriangle },
+  { name: 'Atividades Acessórias', url: '/dashboard/atividades-acessorias', icon: Wrench },
+  { name: 'TAF', url: '/dashboard/taf', icon: Cloud },
+  { name: 'PTR-BA - Prova Teórica', url: '/dashboard/ptr-ba-prova-teorica', icon: GraduationCap },
+  { name: 'PTR-BA - Horas de Treinamento', url: '/dashboard/ptr-ba-horas-treinamento', icon: Clock },
+  { name: 'Inspeções de Viaturas', url: '/dashboard/inspecoes-viaturas', icon: Truck },
+  { name: 'Tempo EPR', url: '/dashboard/tempo-epr', icon: Timer },
+  { name: 'Tempo Resposta', url: '/dashboard/tempo-resposta', icon: Zap },
+  { name: 'Controle de Agentes Extintores', url: '/dashboard/controle-agentes-extintores', icon: Droplets },
+  { name: 'Controle de Trocas', url: '/dashboard/controle-trocas', icon: RefreshCw },
+  { name: 'Verificação de TPS', url: '/dashboard/verificacao-tps', icon: CheckCircle },
+  { name: 'Higienização de TPS', url: '/dashboard/higienizacao-tps', icon: Sparkles },
+  { name: 'Controle de Uniformes Recebidos', url: '/dashboard/controle-uniformes-recebidos', icon: Package }
 ]
 
 const basePath = '/dashboard'
 
 export function IndicatorsNavbar() {
   const pathname = usePathname()
+  const [activeTab, setActiveTab] = useState('')
+
+  useEffect(() => {
+    // Determina qual aba está ativa baseado no pathname
+    const currentTab = indicatorTabs.find(tab => {
+      if (pathname === tab.url) return true
+      if (pathname === basePath && tab.url === '/dashboard/ocorrencias-aeronauticas') return true
+      if (pathname.startsWith(tab.url) && tab.url !== '/dashboard/ocorrencias-aeronauticas') return true
+      return false
+    })
+    
+    if (currentTab) {
+      setActiveTab(currentTab.name)
+    } else {
+      // Se nenhuma aba específica estiver ativa, define a primeira como padrão
+      setActiveTab(indicatorTabs[0].name)
+    }
+  }, [pathname])
+
+  // Filtra apenas os itens que devem ser exibidos (pode ser usado para filtrar por permissões no futuro)
+  const visibleTabs = indicatorTabs
 
   return (
-    <div className="rounded-2xl border border-orange-200 bg-orange-50/70 p-4 shadow-sm">
-      <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 text-sm font-medium text-orange-700">
-        {indicatorTabs.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            (pathname === basePath && item.href === '/dashboard/ocorrencias-aeronauticas') ||
-            (pathname.startsWith(item.href) && item.href !== '/dashboard/ocorrencias-aeronauticas')
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`whitespace-nowrap rounded-xl border px-4 py-2 transition-colors ${
-                isActive
-                  ? 'border-[#ff6600] bg-[#ff6600] text-white shadow-md'
-                  : 'border-transparent bg-white/80 text-[#ff6600] hover:border-orange-300 hover:bg-orange-100'
-              }`}
-            >
-              {item.label}
-            </Link>
-          )
-        })}
-      </div>
+    <div className="w-full">
+      <NavBar 
+        items={visibleTabs.map(tab => ({
+          name: tab.name,
+          url: tab.url,
+          icon: tab.icon
+        }))} 
+        className="relative"
+        activeTab={activeTab}
+      />
     </div>
   )
 }
+
 
 
 

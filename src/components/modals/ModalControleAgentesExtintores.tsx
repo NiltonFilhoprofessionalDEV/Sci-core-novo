@@ -268,7 +268,9 @@ export function ModalControleAgentesExtintores({
   // Formatação de data para exibição
   const formatDate = (dateString: string) => {
     if (!dateString) return ''
-    const date = new Date(`${dateString}T00:00:00`)
+    // Parse a string YYYY-MM-DD e cria a data no fuso horário local
+    const [year, month, day] = dateString.split('-').map(Number)
+    const date = new Date(year, month - 1, day) // month é 0-indexed
     return date.toLocaleDateString('pt-BR')
   }
 

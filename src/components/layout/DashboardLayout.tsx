@@ -25,6 +25,7 @@ import {
   TrendingUp
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -75,28 +76,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       return [
         ...baseItems,
         {
-          icon: BarChart3,
-          label: 'Todas as Seções',
-          href: '/secoes',
-          active: isActive('/secoes')
-        },
-        {
-          icon: Users,
-          label: 'Usuários',
-          href: '/usuarios',
-          active: isActive('/usuarios')
-        },
-        {
           icon: Target,
           label: 'Indicadores',
           href: '/indicadores',
           active: isActive('/indicadores')
-        },
-        {
-          icon: TrendingUp,
-          label: 'Relatórios Gerais',
-          href: '/relatorios',
-          active: isActive('/relatorios')
         },
         {
           icon: Settings,
@@ -161,36 +144,36 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigationItems = getNavigationItems()
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {/* Sidebar */}
-      <div className="fixed left-0 top-0 h-full w-64 bg-[#f3f4f6] border-r border-[#e5e7eb] shadow-sm z-40">
+      <div className="fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-sidebar-border shadow-sm z-40">
         <div className="p-6">
           {/* Logo e Título */}
           <div className="flex items-center space-x-3 mb-8">
-            <div className="w-10 h-10 bg-[#ff6600] rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-[#1f1f1f]">Bombeiro</h1>
-              <p className="text-xs text-[#1f1f1f]/60">MedMais</p>
+              <h1 className="text-lg font-bold text-white">Bombeiro</h1>
+              <p className="text-xs text-white/80">MedMais</p>
             </div>
           </div>
 
           {/* Informações do Usuário */}
           {userInfo && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="bg-white/10 rounded-lg p-4 mb-6">
               <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-[#ff6600] rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                   <User className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[#1f1f1f] font-medium text-sm truncate">
+                  <p className="text-white font-medium text-sm truncate">
                     {userInfo.nome}
                   </p>
-                  <p className="text-[#1f1f1f]/60 text-xs truncate">
+                  <p className="text-white/80 text-xs truncate">
                     {userInfo.perfil}
                   </p>
-                  <p className="text-[#1f1f1f]/50 text-xs truncate">
+                  <p className="text-white/70 text-xs truncate">
                     {userInfo.contexto}
                   </p>
                 </div>
@@ -208,12 +191,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   href={item.href}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors border-l-2 ${
                     item.active
-                      ? 'text-white bg-[#ff6600] border-[#ff6600]'
-                      : 'text-[#1f1f1f]/80 hover:text-[#1f1f1f] hover:bg-orange-50/50 border-transparent'
+                      ? 'text-sidebar-accent-foreground bg-sidebar-accent border-sidebar-accent-foreground/40'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/20 border-transparent'
                   }`}
                 >
-                  <Icon className={`w-5 h-5 ${item.active ? 'text-white' : ''}`} />
-                  <span className={`text-sm ${item.active ? 'text-white' : ''}`}>{item.label}</span>
+                  <Icon className={`w-5 h-5 ${item.active ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground'}`} />
+                  <span className={`text-sm ${item.active ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground'}`}>{item.label}</span>
                 </a>
               )
             })}
@@ -225,7 +208,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <Button
             onClick={handleLogout}
             variant="outline"
-            className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-700 border-red-300/50"
+            className="w-full bg-white/10 hover:bg-white/20 text-white border-white/30 hover:border-white/50"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Sair
@@ -236,17 +219,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content */}
       <div className="ml-64">
         {/* Header */}
-        <div className="bg-[#ff6600] text-white shadow-sm px-8 py-4">
+        <div className="bg-sidebar text-sidebar-foreground shadow-sm px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-sidebar-foreground">
                 Sistema de Indicadores
               </h1>
-              <p className="text-white/80 text-sm">
+              <p className="text-sidebar-foreground/80 text-sm">
                 Grupo MedMais - Seções de Bombeiro de Aeródromo
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <button className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
                 <Bell className="w-5 h-5 text-white" />
               </button>

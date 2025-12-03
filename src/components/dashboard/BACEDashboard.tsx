@@ -210,7 +210,7 @@ export function BACEDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff6600]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -229,7 +229,7 @@ export function BACEDashboard() {
         </div>
         
         <div className="flex items-center space-x-3">
-          <Button className="bg-[#ff6600] hover:bg-[#ff6600]/90 text-white">
+          <Button className="bg-primary hover:bg-primary/90 text-white">
             <Plus className="w-4 h-4 mr-2" />
             Preencher Indicador
           </Button>
@@ -295,7 +295,7 @@ export function BACEDashboard() {
               <CardTitle className="text-sm font-medium text-[#1f1f1f]">
                 Taxa Conclusão
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-[#ff6600]" />
+              <TrendingUp className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-[#1f1f1f]">
@@ -312,7 +312,7 @@ export function BACEDashboard() {
               <CardTitle className="text-sm font-medium text-[#1f1f1f]">
                 Equipe
               </CardTitle>
-              <Users className="h-4 w-4 text-[#ff6600]" />
+              <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-[#1f1f1f]">
@@ -369,7 +369,7 @@ export function BACEDashboard() {
                         </span>
                       </div>
                       
-                      <Button size="sm" className="bg-[#ff6600] hover:bg-[#ff6600]/90 text-white">
+                      <Button size="sm" className="bg-primary hover:bg-primary/90 text-white">
                         <Edit3 className="w-3 h-3 mr-1" />
                         Preencher
                       </Button>
@@ -405,7 +405,7 @@ export function BACEDashboard() {
                       <span className="text-[#7a5b3e]/50">
                         {formatarDataRelativa(indicador.data_preenchimento)}
                       </span>
-                      <span className="text-[#ff6600] font-medium">
+                      <span className="text-primary font-medium">
                         {indicador.tipo}
                       </span>
                     </div>
@@ -423,14 +423,14 @@ export function BACEDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full bg-[#ff6600] hover:bg-[#ff6600]/90 text-white justify-start">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-white justify-start">
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Indicador
               </Button>
 
               <Button 
                 onClick={() => setIsAtividadesModalOpen(true)}
-                className="w-full bg-[#ff6600] hover:bg-[#ff6600]/90 text-white justify-start"
+                className="w-full bg-primary hover:bg-primary/90 text-white justify-start"
               >
                 <Activity className="w-4 h-4 mr-2" />
                 Atividades Acessórias
@@ -438,7 +438,7 @@ export function BACEDashboard() {
 
               <Button 
                 onClick={() => setIsTAFModalOpen(true)}
-                className="w-full bg-[#ff6600] hover:bg-[#ff6600]/90 text-white justify-start"
+                className="w-full bg-primary hover:bg-primary/90 text-white justify-start"
               >
                 <Timer className="w-4 h-4 mr-2" />
                 TAF
@@ -446,7 +446,7 @@ export function BACEDashboard() {
 
               <Button 
                 onClick={() => setIsControleAgentesModalOpen(true)}
-                className="w-full bg-[#ff6600] hover:bg-[#ff6600]/90 text-white justify-start"
+                className="w-full bg-primary hover:bg-primary/90 text-white justify-start"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Controle de Agentes Extintores
@@ -483,7 +483,7 @@ export function BACEDashboard() {
               
               <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
                 <div 
-                  className="bg-[#ff6600] h-3 rounded-full transition-all duration-300" 
+                  className="bg-primary h-3 rounded-full transition-all duration-300" 
                   style={{ width: `${estatisticas?.taxa_conclusao}%` }}
                 ></div>
               </div>

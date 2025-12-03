@@ -11,25 +11,41 @@ export default function Home() {
 
   useEffect(() => {
     // Evita redirecionamentos múltiplos
-    if (hasRedirected.current || loading) return
+    if (hasRedirected.current) return
+    
+    // Timeout máximo de 10 segundos para evitar travamento
+    const maxTimeout = setTimeout(() => {
+      if (!hasRedirected.current) {
+        console.warn('⏰ Home - Timeout no redirecionamento, forçando para login')
+        hasRedirected.current = true
+        router.replace('/login')
+      }
+    }, 10000)
+    
+    // Se ainda está carregando, aguardar (mas com limite de tempo)
+    if (loading) {
+      return () => clearTimeout(maxTimeout)
+    }
     
     console.log('🏠 Home - Estado atual:', { user: !!user, loading, error })
     
-    if (!error) {
-      hasRedirected.current = true
-      
-      // Usar setTimeout para evitar problemas de HMR
-      const timeoutId = setTimeout(() => {
-        if (user) {
-          console.log('🏠 Home - Redirecionando para dashboard')
-          router.replace('/dashboard')
-        } else {
-          console.log('🏠 Home - Redirecionando para login')
-          router.replace('/login')
-        }
-      }, 100)
-      
-      return () => clearTimeout(timeoutId)
+    hasRedirected.current = true
+    clearTimeout(maxTimeout)
+    
+    // Usar setTimeout para evitar problemas de HMR
+    const timeoutId = setTimeout(() => {
+      if (user) {
+        console.log('🏠 Home - Redirecionando para dashboard')
+        router.replace('/dashboard')
+      } else {
+        console.log('🏠 Home - Redirecionando para login')
+        router.replace('/login')
+      }
+    }, 100)
+    
+    return () => {
+      clearTimeout(timeoutId)
+      clearTimeout(maxTimeout)
     }
   }, [user, loading, error, router])
 
@@ -58,10 +74,10 @@ export default function Home() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <div className="text-xl">Carregando...</div>
-          <div className="text-sm mt-2 opacity-75">Conectando com o servidor...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <div className="text-xl text-gray-800">Carregando...</div>
+          <div className="text-sm mt-2 text-gray-600 opacity-75">Conectando com o servidor...</div>
         </div>
       </div>
     )

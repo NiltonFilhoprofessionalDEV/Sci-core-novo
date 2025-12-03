@@ -98,7 +98,9 @@ export function FiltrosHistorico({
 
   const formatarDataFiltro = (valor: string) => {
     if (!valor) return ''
-    const data = new Date(`${valor}T00:00:00`)
+    // Parse a string YYYY-MM-DD e cria a data no fuso horário local
+    const [year, month, day] = valor.split('-').map(Number)
+    const data = new Date(year, month - 1, day) // month é 0-indexed
     return data.toLocaleDateString('pt-BR')
   }
 

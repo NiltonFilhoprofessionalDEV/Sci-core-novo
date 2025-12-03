@@ -181,9 +181,27 @@ export function HistoricoIndicadores() {
     }
   }
   
-  // Efeito para buscar contadores quando os temas mudarem
+  // Efeito para buscar contadores quando os temas mudarem ou quando o mês mudar
   useEffect(() => {
     buscarContadores(TEMAS_INDICADORES)
+    
+    // Verificar mudança de mês a cada minuto
+    const intervalId = setInterval(() => {
+      buscarContadores(TEMAS_INDICADORES)
+    }, 60000) // Verifica a cada minuto
+    
+    // Verificar mudança de mês ao carregar a página
+    const verificarMudancaMes = () => {
+      buscarContadores(TEMAS_INDICADORES)
+    }
+    
+    // Verificar quando a página ganha foco (usuário volta para a aba)
+    window.addEventListener('focus', verificarMudancaMes)
+    
+    return () => {
+      clearInterval(intervalId)
+      window.removeEventListener('focus', verificarMudancaMes)
+    }
   }, [buscarContadores])
 
   // Carregar tema ativo do localStorage

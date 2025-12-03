@@ -325,8 +325,8 @@ export function PTRBAModal({
         <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-[#ff6600]/10 rounded-lg">
-                <GraduationCap className="w-6 h-6 text-[#ff6600]" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <GraduationCap className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-black">
@@ -435,7 +435,7 @@ export function PTRBAModal({
                 <button
                   onClick={handleProceedToDetails}
                   disabled={loading || !secaoId}
-                  className="px-6 py-3 bg-[#ff6600] text-white rounded-lg hover:bg-[#ff6600]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   {loading ? 'Carregando...' : 'Prosseguir'}
                 </button>
@@ -652,7 +652,7 @@ export function PTRBAModal({
                 <button
                   onClick={handleSave}
                   disabled={saving || !secaoId}
-                  className="px-6 py-3 bg-[#ff6600] text-white rounded-lg hover:bg-[#ff6600]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
+                  className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
                 >
                   {saving ? (
                     <>
@@ -696,7 +696,7 @@ export function PTRBAModal({
                   </button>
                   <button
                     onClick={handleConfirmEquipeChange}
-                    className="px-4 py-2 bg-[#ff6600] text-white rounded-lg hover:bg-[#ff6600]/90 transition-colors font-medium"
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
                   >
                     Confirmar Mudança
                   </button>

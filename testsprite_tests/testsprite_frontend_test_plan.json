@@ -1,0 +1,421 @@
+[
+  {
+    "id": "TC001",
+    "title": "Autenticação com credenciais válidas",
+    "description": "Verifica se o sistema autentica corretamente o usuário com credenciais válidas e atribui o perfil correto com sessão persistente.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navegar para a página de login"
+      },
+      {
+        "type": "action",
+        "description": "Inserir credenciais válidas de usuário com perfil Gestor POP"
+      },
+      {
+        "type": "action",
+        "description": "Clicar no botão de login"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar se o login foi bem-sucedido e o perfil Gestor POP foi atribuído"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar que a sessão está persistente após recarregar a página"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Falha na autenticação com credenciais inválidas",
+    "description": "Verifica que o sistema rejeita o login com credenciais incorretas e exibe mensagem amigável de erro.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navegar para a página de login"
+      },
+      {
+        "type": "action",
+        "description": "Inserir um nome de usuário incorreto e senha inválida"
+      },
+      {
+        "type": "action",
+        "description": "Clicar no botão de login"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar se a mensagem de erro clara é exibida informando falha na autenticação"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Isolamento de dados via Row Level Security para perfil BA-CE",
+    "description": "Verifica que usuários com perfil BA-CE só visualizam e acessam indicadores referentes à sua seção e equipe conforme regras de Row Level Security.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Autenticar como usuário BA-CE com permissão limitada"
+      },
+      {
+        "type": "action",
+        "description": "Acessar o dashboard de indicadores operacionais"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar que os dados exibidos correspondem somente à seção e equipe autorizada do usuário"
+      },
+      {
+        "type": "action",
+        "description": "Tentar acessar dados de outra seção via URL direta"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar que o acesso é negado ou os dados não são exibidos devido à segurança"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Preenchimento e salvamento de indicador com validação e cálculo automático",
+    "description": "Testa o fluxo completo de preenchimento de um indicador, validação em tempo real, cálculo automático e atualização correta no dashboard.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Autenticar usuário com permissão para preenchimento"
+      },
+      {
+        "type": "action",
+        "description": "Navegar para o módulo de preenchimento de indicadores"
+      },
+      {
+        "type": "action",
+        "description": "Selecionar um indicador para preenchimento"
+      },
+      {
+        "type": "action",
+        "description": "Inserir dados válidos no formulário de preenchimento"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar validação em tempo real sem erros e cálculo de métricas automáticas corretas"
+      },
+      {
+        "type": "action",
+        "description": "Submeter o formulário para salvar o indicador"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar que os dados foram salvos com sucesso e o dashboard foi atualizado adequadamente"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Validação de formulário rejeita dados inválidos",
+    "description": "Verifica que o sistema bloqueia submissão de dados inválidos no formulário de indicadores com feedback visual claro.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navegar para o formulário de preenchimento de indicador"
+      },
+      {
+        "type": "action",
+        "description": "Inserir dados inválidos (ex: valores negativos ou texto em campo numérico)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar mensagens de erro visuais ao lado dos campos inválidos"
+      },
+      {
+        "type": "action",
+        "description": "Tentar submeter o formulário"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar que a submissão foi bloqueada e que os erros persistem"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Visualização de dashboard com 14 tipos de gráficos interativos",
+    "description": "Verifica que o dashboard carrega corretamente todos os 14 tipos de indicadores com gráficos interativos renderizados na paleta de cores padrão.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Autenticar usuário com acesso ao dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navegar para dashboard principal"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar que todos os 14 tipos de indicadores estão listados e seus gráficos estão visíveis"
+      },
+      {
+        "type": "action",
+        "description": "Interagir com gráficos (zoom, hover, filtros)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar que as interações atualizam os dados e visualizações corretamente"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Consulta histórica: aplicação de filtros avançados com paginação e cache",
+    "description": "Testa o módulo de consulta histórica para verificar funcionamento correto dos filtros, paginação e uso transparente do cache com atualização em background.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navegar para o módulo de consulta histórica"
+      },
+      {
+        "type": "action",
+        "description": "Selecionar um tema para análise histórica"
+      },
+      {
+        "type": "action",
+        "description": "Aplicar filtros avançados (data, seção, equipe)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar que a lista de resultados exibidos respeita os filtros aplicados"
+      },
+      {
+        "type": "action",
+        "description": "Navegar entre páginas dos resultados utilizando paginação"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar resposta rápida (<500ms) com dados provenientes de cache quando possível"
+      },
+      {
+        "type": "action",
+        "description": "Simular atualização de dados em background"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar que cache é atualizado sem impactar a navegação do usuário"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Sistema de cache com stale time e debounce para otimização de performance",
+    "description": "Verifica que o sistema de cache funciona conforme especificações, respeitando stale time e debounce para chamadas eficientes ao backend.",
+    "category": "performance",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Executar uma requisição para carregar dashboard ou módulo histórico"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar que dados são armazenados em cache e não recarregados imediatamente"
+      },
+      {
+        "type": "action",
+        "description": "Gerar múltiplas interações rápidas que acionem requisições (ex: filtros) dentro do período de debounce"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar que apenas uma chamada é realizada respeitando debounce"
+      },
+      {
+        "type": "action",
+        "description": "Esperar até o stale time expirar e repetir a requisição"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar que os dados são atualizados do backend e cache é renovado"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Tratamento de erros com mensagens amigáveis e retry automático",
+    "description": "Testa o sistema de tratamento de erros para garantir que erros de requisição exibem mensagens claras, são logados e tentam retry automático.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Simular falha de conexão ao backend durante carregamento de dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar que uma mensagem amigável de erro é exibida ao usuário"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar que o sistema realiza tentativas automáticas (retry) para recuperar a requisição"
+      },
+      {
+        "type": "assertion",
+        "description": "Checar nos logs que o erro foi registrado com detalhes"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Interface responsiva do layout principal em vários dispositivos",
+    "description": "Verifica que o layout principal do dashboard, com sidebar e header, adapta-se corretamente em diferentes tamanhos de tela e dispositivos.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Acessar o sistema em desktop, tablet e mobile"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar que a sidebar e header são exibidos e funcionais em todas as resoluções testadas"
+      },
+      {
+        "type": "action",
+        "description": "Testar navegação no menu e interação com componentes principais em cada dispositivo"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar que o layout não apresenta sobreposições, cortes ou elementos inacessíveis"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Cálculo correto de métricas operacionais e KPIs no dashboard",
+    "description": "Verifica se os cálculos e exibições de métricas e KPIs são precisos com base nos dados preenchidos e atualizados.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Preencher ou atualizar indicadores operacionais com valores conhecidos"
+      },
+      {
+        "type": "action",
+        "description": "Navegar para o dashboard para visualização dos KPIs associados"
+      },
+      {
+        "type": "assertion",
+        "description": "Conferir se os KPIs refletem corretamente os dados atuais e realizam cálculos precisos"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Navegação entre abas e filtros aplicados atualizam dashboard com alta performance",
+    "description": "Testa se a navegação por abas e aplicação de filtros no dashboard atualiza os dados exibidos dentro do tempo máximo aceitável (<500ms).",
+    "category": "performance",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navegar entre diferentes abas do dashboard de indicadores"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar carregamento das abas em menos de 500ms"
+      },
+      {
+        "type": "action",
+        "description": "Aplicar filtros avançados no dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar que os gráficos e métricas são atualizados rapidamente em menos de 500ms"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Acesso restrito: tentar acessar funcionalidade sem permissão",
+    "description": "Confirma que usuários sem permissão para uma função específica não conseguem acessá-la e recebem mensagem apropriada.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Autenticar com usuário com perfil Gerente de Seção"
+      },
+      {
+        "type": "action",
+        "description": "Tentar acessar módulo de preenchimento exclusivo para Gestor POP"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar que o acesso é bloqueado e uma mensagem de permissão negada é exibida"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Componente UI reutilizável: consistência visual e funcionalidade do botão",
+    "description": "Verifica que o componente de botão reutilizável exibe estado correto (hover, disabled) e executa ações esperadas em múltiplas telas.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Localizar botões reutilizáveis em formulários e dashboards"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar estilos (cores, tamanhos) consistentes com tema laranja/branco/preto"
+      },
+      {
+        "type": "action",
+        "description": "Testar interação: hover, clique, estado disabled"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar que a função do botão é executada corretamente em cada interface"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Logout e encerramento de sessão",
+    "description": "Garantir que o usuário consegue efetuar logout corretamente, encerrando a sessão e redirecionando para página de login.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Estar autenticado no sistema"
+      },
+      {
+        "type": "action",
+        "description": "Clicar no botão de logout"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirmar que a sessão foi encerrada"
+      },
+      {
+        "type": "assertion",
+        "description": "Verificar redirecionamento para a página de login"
+      }
+    ]
+  }
+]

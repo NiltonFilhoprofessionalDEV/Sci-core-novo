@@ -297,7 +297,11 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
                   <div>
                     <span className="font-medium text-black">Data:</span>
                     <span className="ml-2 text-gray-900">
-                      {new Date(dataSelecionada + 'T00:00:00').toLocaleDateString('pt-BR')}
+                      {(() => {
+                        if (!dataSelecionada) return ''
+                        const [year, month, day] = dataSelecionada.split('-').map(Number)
+                        return new Date(year, month - 1, day).toLocaleDateString('pt-BR')
+                      })()}
                     </span>
                   </div>
                   <div>

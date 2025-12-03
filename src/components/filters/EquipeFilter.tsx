@@ -98,7 +98,7 @@ export default function EquipeFilter({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[200px]"
+        className="flex items-center justify-between gap-2 px-4 py-2 border border-input rounded-lg bg-background hover:bg-accent transition-colors min-w-[200px]"
       >
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-gray-600" />
@@ -110,7 +110,7 @@ export default function EquipeFilter({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+        <div className="absolute top-full left-0 mt-1 w-80 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
           <div className="p-3 border-b border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-gray-900">Filtrar por Equipe</h3>

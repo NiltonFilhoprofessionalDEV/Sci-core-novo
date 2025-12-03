@@ -3,17 +3,22 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ekhuhyervzndsatdngyl.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVraHVoeWVydnpuZHNhdGRuZ3lsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NzE4OTAsImV4cCI6MjA3NjU0Nzg5MH0.DQgnQYEBHjCGUVAxQY6l1OWwqqZcSNUIUviTjDrrI8M'
 
-// Configuração mais robusta do cliente Supabase
+// Configuração mais robusta do cliente Supabase com timeouts
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    // Tratar erros de refresh token
+    flowType: 'pkce',
   },
   global: {
     headers: {
       'x-client-info': 'supabase-js-web',
     },
+    // Não sobrescrever fetch globalmente para evitar problemas com Supabase
+    // Timeouts serão adicionados nas queries individuais
   },
   db: {
     schema: 'public',
@@ -24,6 +29,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     },
   },
 })
+
+// Observação: O tratamento de erros de refresh token inválido é feito no hook useAuth.ts
+// através do listener onAuthStateChange. Não interceptamos fetch globalmente para evitar
+// problemas com outras requisições.
 
 // Função utilitária para retry com backoff exponencial otimizada
 export async function withRetry<T>(
@@ -72,11 +81,11 @@ export async function withRetry<T>(
   throw lastError!
 }
 
-// Função para verificar conectividade otimizada
+// Função para verificar conectividade otimizada com timeout reduzido
 export async function checkConnection(): Promise<boolean> {
   try {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 3000)
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
     
     const { data, error } = await supabase
       .from('secoes')
@@ -90,6 +99,24 @@ export async function checkConnection(): Promise<boolean> {
     console.warn('⚠️ Falha na verificação de conectividade:', error)
     return false
   }
+}
+
+// Função helper para adicionar timeout a queries do Supabase
+export function withQueryTimeout<T>(
+  queryPromise: Promise<{ data: T | null; error: any }>,
+  timeoutMs: number = 10000
+): Promise<{ data: T | null; error: any }> {
+  return Promise.race([
+    queryPromise,
+    new Promise<{ data: null; error: { message: string } }>((resolve) => {
+      setTimeout(() => {
+        resolve({
+          data: null,
+          error: { message: `Query timeout após ${timeoutMs}ms` }
+        })
+      }, timeoutMs)
+    })
+  ])
 }
 
 // Função para executar operações com retry automático

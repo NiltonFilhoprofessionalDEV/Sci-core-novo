@@ -344,8 +344,8 @@ export function ModalVerificacaoTPs({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/20">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#ff6600]/20 rounded-lg">
-              <Hash className="w-6 h-6 text-[#ff6600]" />
+            <div className="p-2 bg-primary/20 rounded-lg">
+              <Hash className="w-6 h-6 text-primary" />
             </div>
             <div>
               <h2 id="modal-title" className="text-xl font-bold text-[#1f1f1f]">
@@ -561,7 +561,7 @@ export function ModalVerificacaoTPs({
             ref={saveButtonRef}
             onClick={handleSave}
             disabled={saving || loading || Object.keys(validationErrors).length > 0 || !secaoId}
-            className="px-4 py-2 bg-[#ff6600] hover:bg-[#ff6600]/90 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
             aria-describedby="save-button-help"
           >
             {saving ? (

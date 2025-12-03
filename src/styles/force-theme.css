@@ -1,0 +1,319 @@
+/* =====================================================
+   FORÇA O USO DAS VARIÁVEIS CSS DO TEMA EM TODO O SISTEMA
+   Este arquivo usa !important para sobrescrever qualquer estilo hardcoded
+   ===================================================== */
+
+/* Backgrounds - forçar uso das variáveis */
+.bg-white {
+  background-color: var(--background) !important;
+}
+
+.bg-gray-50,
+.bg-gray-100 {
+  background-color: var(--muted) !important;
+}
+
+/* Text Colors - forçar uso das variáveis */
+.text-white {
+  color: var(--sidebar-foreground) !important;
+}
+
+.text-black,
+.text-gray-900,
+.text-gray-800,
+.text-gray-700 {
+  color: var(--foreground) !important;
+}
+
+.text-gray-600,
+.text-gray-500 {
+  color: var(--muted-foreground) !important;
+}
+
+/* Primary/Orange colors */
+.bg-orange-500,
+.bg-orange-600,
+.bg-orange-400 {
+  background-color: var(--primary) !important;
+}
+
+.text-orange-500,
+.text-orange-600,
+.text-orange-700 {
+  color: var(--primary) !important;
+}
+
+.border-orange-200,
+.border-orange-300,
+.border-orange-500 {
+  border-color: var(--primary) !important;
+}
+
+.bg-orange-50 {
+  background-color: var(--muted) !important;
+}
+
+/* Borders */
+.border-gray-200,
+.border-gray-300 {
+  border-color: var(--border) !important;
+}
+
+/* Cards com variáveis */
+.rounded-2xl,
+.rounded-lg {
+  background-color: var(--card) !important;
+  color: var(--card-foreground) !important;
+}
+
+/* Opacidade com variáveis */
+.bg-white\/10 {
+  background-color: color-mix(in oklab, var(--sidebar-foreground) 10%, transparent) !important;
+}
+
+.bg-white\/20 {
+  background-color: color-mix(in oklab, var(--sidebar-foreground) 20%, transparent) !important;
+}
+
+.text-white\/80 {
+  color: color-mix(in oklab, var(--sidebar-foreground) 80%, transparent) !important;
+}
+
+.text-white\/70 {
+  color: color-mix(in oklab, var(--sidebar-foreground) 70%, transparent) !important;
+}
+
+/* Inputs, selects, textareas */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+/* Modais e dialogs */
+.modal,
+[role="dialog"] {
+  background-color: var(--popover) !important;
+  color: var(--popover-foreground) !important;
+}
+
+/* Tabelas */
+table {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+thead {
+  background-color: var(--muted) !important;
+}
+
+tbody tr {
+  border-color: var(--border) !important;
+}
+
+tbody tr:hover {
+  background-color: var(--muted) !important;
+}
+
+/* Shadows usando variáveis */
+.shadow-sm {
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.shadow-md {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.shadow-xl {
+  box-shadow: var(--shadow-xl) !important;
+}
+
+.shadow-2xl {
+  box-shadow: var(--shadow-2xl) !important;
+}
+
+/* Cores específicas com hash (#) */
+.text-\[#1f1f1f\] {
+  color: var(--foreground) !important;
+}
+
+.text-\[#7a5b3e\] {
+  color: var(--muted-foreground) !important;
+}
+
+.bg-\[#fb923c\] {
+  background-color: var(--primary) !important;
+}
+
+.border-\[#fb6d02\] {
+  border-color: var(--primary) !important;
+}
+
+/* Mensagens de erro (red) */
+.bg-red-50 {
+  background-color: color-mix(in oklab, var(--destructive) 10%, var(--background)) !important;
+}
+
+.border-red-200 {
+  border-color: color-mix(in oklab, var(--destructive) 30%, transparent) !important;
+}
+
+.text-red-700 {
+  color: var(--destructive) !important;
+}
+
+/* Mensagens de sucesso (green) */
+.bg-green-50 {
+  background-color: color-mix(in oklab, oklch(0.7 0.15 140) 10%, var(--background)) !important;
+}
+
+.border-green-200 {
+  border-color: color-mix(in oklab, oklch(0.7 0.15 140) 30%, transparent) !important;
+}
+
+.text-green-700 {
+  color: oklch(0.7 0.15 140) !important;
+}
+
+/* Blue colors */
+.bg-blue-500,
+.bg-blue-600 {
+  background-color: var(--primary) !important;
+}
+
+.text-blue-600 {
+  color: var(--primary) !important;
+}
+
+/* Garantir que o body use as variáveis */
+body {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* Override genérico para qualquer elemento com classes Tailwind hardcoded */
+[class*="bg-white"]:not([class*="dark"]) {
+  background-color: var(--background) !important;
+}
+
+[class*="text-white"] {
+  color: var(--sidebar-foreground) !important;
+}
+
+[class*="text-black"] {
+  color: var(--foreground) !important;
+}
+
+[class*="bg-orange"] {
+  background-color: var(--primary) !important;
+}
+
+[class*="text-orange"] {
+  color: var(--primary) !important;
+}
+
+[class*="border-orange"] {
+  border-color: var(--primary) !important;
+}
+
+/* Forçar cards a usarem variáveis */
+.rounded-2xl[class*="bg"],
+.rounded-lg[class*="bg"],
+.rounded-xl[class*="bg"] {
+  background-color: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border-color: var(--border) !important;
+}
+
+.shadow-2xl {
+  box-shadow: var(--shadow-2xl) !important;
+}
+
+/* Cores específicas com hash */
+.text-\[#1f1f1f\] {
+  color: var(--foreground) !important;
+}
+
+.text-\[#7a5b3e\] {
+  color: var(--muted-foreground) !important;
+}
+
+.bg-\[#fb923c\] {
+  background-color: var(--primary) !important;
+}
+
+.border-\[#fb6d02\] {
+  border-color: var(--primary) !important;
+}
+
+/* Red e Green para mensagens */
+.bg-red-50 {
+  background-color: color-mix(in oklab, var(--destructive) 10%, var(--background)) !important;
+}
+
+.border-red-200 {
+  border-color: color-mix(in oklab, var(--destructive) 30%, transparent) !important;
+}
+
+.text-red-700 {
+  color: var(--destructive) !important;
+}
+
+.bg-green-50 {
+  background-color: color-mix(in oklab, oklch(0.7 0.15 140) 10%, var(--background)) !important;
+}
+
+.border-green-200 {
+  border-color: color-mix(in oklab, oklch(0.7 0.15 140) 30%, transparent) !important;
+}
+
+.text-green-700 {
+  color: oklch(0.7 0.15 140) !important;
+}
+
+/* Blue colors */
+.bg-blue-500,
+.bg-blue-600 {
+  background-color: var(--primary) !important;
+}
+
+.text-blue-600 {
+  color: var(--primary) !important;
+}
+
+/* Forçar todos os elementos principais */
+body {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* Cards, containers, sections */
+div[class*="bg-white"],
+section[class*="bg-white"],
+article[class*="bg-white"] {
+  background-color: var(--card) !important;
+}
+
+/* Garantir que todos os textos usem as variáveis */
+p, h1, h2, h3, h4, h5, h6, span, label {
+  color: inherit;
+}
+
+/* Override para elementos específicos do Tailwind */
+[class*="bg-white"]:not(.dark [class*="bg-white"]) {
+  background-color: var(--background) !important;
+}
+
+[class*="text-white"] {
+  color: var(--sidebar-foreground) !important;
+}
+
+[class*="text-black"] {
+  color: var(--foreground) !important;
+}

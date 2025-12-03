@@ -22,9 +22,10 @@ interface UseHistoricoDataReturn {
   editarRegistro: (id: string, dados: any) => Promise<boolean>
 }
 
-// Cache inteligente global
+// Cache inteligente global com stale time
 const cache = new Map<string, { data: any[], timestamp: number, total: number }>()
-const CACHE_DURATION = 2 * 60 * 1000 // 2 minutos
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos (dados frescos)
+const STALE_TIME = 10 * 60 * 1000 // 10 minutos (dados podem ser retornados mesmo se antigos)
 
 // Controle global de requisições para evitar duplicatas
 const activeRequests = new Map<string, Promise<any>>()
@@ -37,7 +38,7 @@ const CAMPOS_DATA_POR_TABELA: Record<string, string> = {
   'taf_resultados': 'data_taf',
   'ptr_ba_provas_teoricas': 'data_referencia',
   'ptr_ba_horas_treinamento': 'data_referencia',
-  'inspecoes_viatura': 'data_referencia',
+  'inspecoes_viatura': 'data',
   'tempo_epr': 'data_referencia',
   'tempo_resposta': 'data_referencia',
   'controle_agentes_extintores': 'data_referencia',
@@ -71,29 +72,44 @@ const TABELAS_VALIDAS = new Set([
 let perfilCache: { data: any, timestamp: number } | null = null
 const PERFIL_CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 
-// Função para obter perfil do usuário com cache robusto
+// Função para obter perfil do usuário com cache robusto e timeout
 const obterPerfilUsuario = async (userId: string) => {
   if (perfilCache && Date.now() - perfilCache.timestamp < PERFIL_CACHE_DURATION) {
     return perfilCache.data
   }
 
   try {
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('secao_id, equipe_id, perfil, ativo')
-      .eq('id', userId)
-      .single()
+    // Adicionar timeout de 8 segundos
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+    
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('secao_id, equipe_id, perfil, ativo')
+        .eq('id', userId)
+        .single()
+        .abortSignal(controller.signal)
 
-    if (profileError) {
-      throw new Error(`Erro ao buscar perfil: ${profileError.message}`)
+      clearTimeout(timeoutId)
+
+      if (profileError) {
+        throw new Error(`Erro ao buscar perfil: ${profileError.message}`)
+      }
+
+      if (!profile || !profile.ativo) {
+        throw new Error('Perfil inativo ou não encontrado')
+      }
+
+      perfilCache = { data: profile, timestamp: Date.now() }
+      return profile
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId)
+      if (fetchError.name === 'AbortError' || fetchError.message?.includes('timeout')) {
+        throw new Error('Timeout ao buscar perfil do usuário')
+      }
+      throw fetchError
     }
-
-    if (!profile || !profile.ativo) {
-      throw new Error('Perfil inativo ou não encontrado')
-    }
-
-    perfilCache = { data: profile, timestamp: Date.now() }
-    return profile
   } catch (error) {
     console.error('Erro ao obter perfil:', error)
     throw error
@@ -183,11 +199,35 @@ export function useHistoricoData({
   registrosPorPagina
 }: UseHistoricoDataProps): UseHistoricoDataReturn {
   // Estados
-  const { user } = useAuth()
-  const [dados, setDados] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
+  const { user, loading: authLoading } = useAuth()
+  
+  // Função auxiliar para gerar chave de cache inicial
+  const gerarChaveInicial = () => {
+    return `${tema.id}_${JSON.stringify(filtros)}_${paginaAtual}_${registrosPorPagina}_${user?.id || ''}`
+  }
+  
+  const [dados, setDados] = useState<any[]>(() => {
+    // Inicializar com cache se disponível
+    const chave = gerarChaveInicial()
+    const cached = cache.get(chave)
+    return cached?.data || []
+  })
+  
+  const [loading, setLoading] = useState(() => {
+    // Inicializar loading baseado em cache e auth
+    const chave = gerarChaveInicial()
+    const cached = cache.get(chave)
+    return !cached && !authLoading
+  })
+  
   const [error, setError] = useState<string | null>(null)
-  const [totalRegistros, setTotalRegistros] = useState(0)
+  
+  const [totalRegistros, setTotalRegistros] = useState(() => {
+    // Inicializar com cache se disponível
+    const chave = gerarChaveInicial()
+    const cached = cache.get(chave)
+    return cached?.total || 0
+  })
 
   // Refs para controle de estado
   const mountedRef = useRef(true)
@@ -217,16 +257,33 @@ export function useHistoricoData({
 
     const chave = gerarChave()
 
-    // Verificar cache primeiro
+    // Verificar cache primeiro - retornar dados mesmo se estiverem um pouco antigos
     const cached = cache.get(chave)
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    const cacheAge = cached ? Date.now() - cached.timestamp : Infinity
+    
+    if (cached && cacheAge < STALE_TIME) {
+      // Se houver cache válido (mesmo que antigo), retornar imediatamente
       if (mountedRef.current) {
         setDados(cached.data)
         setTotalRegistros(cached.total)
         setLoading(false)
         setError(null)
       }
-      return
+      
+      // Se os dados estão antigos mas ainda válidos, atualizar em background
+      if (cacheAge >= CACHE_DURATION && cacheAge < STALE_TIME) {
+        // Não bloquear UI, apenas iniciar atualização em background
+        setTimeout(() => {
+          if (mountedRef.current && !activeRequests.has(chave)) {
+            buscarDados()
+          }
+        }, 100)
+      }
+      
+      // Se os dados estão frescos, não buscar novamente
+      if (cacheAge < CACHE_DURATION) {
+        return
+      }
     }
 
     // Verificar se já existe uma requisição ativa para esta chave
@@ -271,9 +328,45 @@ export function useHistoricoData({
         // Obter perfil do usuário
         const profile = await obterPerfilUsuario(user.id)
 
-        // Construir e executar query
+        // Construir e executar query com timeout
         const query = construirQuery(tema.tabela, profile, filtros, paginaAtual, registrosPorPagina)
-        const { data, error: queryError, count } = await query
+        
+        // Timeout de 15 segundos (reduzido para melhor responsividade)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 15000)
+        
+        const timeoutPromise = new Promise<{ data: null, error: { message: string }, count: null }>((resolve) => {
+          setTimeout(() => {
+            resolve({ 
+              data: null, 
+              error: { message: 'Timeout: A requisição demorou mais de 15 segundos' }, 
+              count: null 
+            })
+          }, 15000)
+        })
+        
+        // Race entre query com abort signal e timeout
+        const queryPromise = query
+          .abortSignal(controller.signal)
+          .then(result => {
+            clearTimeout(timeoutId)
+            return { result, isTimeout: false }
+          })
+          .catch((err: any) => {
+            clearTimeout(timeoutId)
+            if (err.name === 'AbortError') {
+              return { result: { data: null, error: { message: 'Timeout: A requisição foi cancelada' }, count: null }, isTimeout: true }
+            }
+            throw err
+          })
+        
+        const raceResult = await Promise.race([queryPromise, timeoutPromise.then(r => ({ result: r, isTimeout: true }))]) as any
+        
+        if (raceResult.isTimeout) {
+          throw new Error('Timeout: A requisição demorou muito para responder. Tente novamente.')
+        }
+        
+        const { data, error: queryError, count } = raceResult.result
 
         if (queryError) {
           if (queryError.code === 'PGRST116') {
@@ -284,8 +377,18 @@ export function useHistoricoData({
           } else if (queryError.message?.includes('JWT')) {
             throw new Error('Sessão expirada. Faça login novamente.')
           } else {
-            console.error('Erro na consulta:', queryError)
-            throw new Error(`Erro na consulta: ${queryError.message}`)
+            // Melhorar o log de erro para incluir mais detalhes
+            const errorDetails = {
+              message: queryError.message,
+              details: queryError.details,
+              hint: queryError.hint,
+              code: queryError.code
+            }
+            console.error('Erro na consulta:', errorDetails)
+            
+            // Se o erro não tiver mensagem, usar uma mensagem padrão
+            const errorMessage = queryError.message || 'Erro desconhecido na consulta'
+            throw new Error(`Erro na consulta: ${errorMessage}`)
           }
         }
 
@@ -416,9 +519,35 @@ export function useHistoricoData({
     buscarDados()
   }, [buscarDados])
 
-  // Effect principal com debounce
+  // Effect principal com debounce e verificação de cache inicial
   useEffect(() => {
-    console.log('⏰ [DEBUG] useEffect executado!', { mounted: mountedRef.current })
+    // Inicializar dados do cache imediatamente se disponível
+    const chave = gerarChave()
+    const cached = cache.get(chave)
+    const cacheAge = cached ? Date.now() - cached.timestamp : Infinity
+    
+    if (cached && cacheAge < STALE_TIME && mountedRef.current) {
+      setDados(cached.data)
+      setTotalRegistros(cached.total)
+      setLoading(false)
+      setError(null)
+      
+      // Se dados estão antigos, atualizar em background
+      if (cacheAge >= CACHE_DURATION) {
+        setTimeout(() => {
+          if (mountedRef.current && !activeRequests.has(chave)) {
+            buscarDados()
+          }
+        }, 100)
+        return
+      }
+    }
+    
+    // Se não houver cache ou auth ainda está carregando, aguardar
+    if (authLoading) {
+      setLoading(true)
+      return
+    }
     
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
@@ -435,7 +564,7 @@ export function useHistoricoData({
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [buscarDados])
+  }, [buscarDados, authLoading, gerarChave])
 
   return {
     dados,
@@ -471,10 +600,18 @@ export function useContadoresTemas() {
       const profile = await obterPerfilUsuario(user.id)
       const novosContadores: Record<string, number> = {}
       
-      // Data limite (últimos 12 meses)
-      const dataLimite = new Date()
-      dataLimite.setMonth(dataLimite.getMonth() - 12)
-      const dataLimiteStr = dataLimite.toISOString().split('T')[0]
+      // Calcular início e fim do mês atual
+      const agora = new Date()
+      const ano = agora.getFullYear()
+      const mes = agora.getMonth() // 0-11
+      
+      // Primeiro dia do mês atual
+      const inicioMes = new Date(ano, mes, 1)
+      const inicioMesStr = inicioMes.toISOString().split('T')[0]
+      
+      // Último dia do mês atual
+      const fimMes = new Date(ano, mes + 1, 0)
+      const fimMesStr = fimMes.toISOString().split('T')[0]
 
       // Processar temas sequencialmente para evitar sobrecarga
       for (const tema of temas) {
@@ -496,7 +633,8 @@ export function useContadoresTemas() {
           let query = supabase
             .from(tema.tabela)
             .select(selectColumns, { count: 'exact', head: true })
-            .gte(campoData, dataLimiteStr)
+            .gte(campoData, inicioMesStr)
+            .lte(campoData, fimMesStr)
 
           // Aplicar RLS
           if (isTabelaTAF) {

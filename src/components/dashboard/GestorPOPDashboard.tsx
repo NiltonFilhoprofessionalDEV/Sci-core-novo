@@ -8,10 +8,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { BarChart3, Users, Target, TrendingUp, FileText, Settings, UserPlus } from 'lucide-react'
-import SecaoFilter from '@/components/filters/SecaoFilter'
-import EquipeFilter from '@/components/filters/EquipeFilter'
+import { BarChart3, Users, Target, TrendingUp, FileText, Settings, UserPlus, Building2 } from 'lucide-react'
+import BaseFilter from '@/components/filters/BaseFilter'
 import DateRangeFilter from '@/components/filters/DateRangeFilter'
+import { TEMAS_INDICADORES } from '@/components/historico/HistoricoIndicadores'
 
 interface Estatisticas {
   totalSecoes: number
@@ -30,6 +30,14 @@ interface IndicadorPorSecao {
   percentual: number
 }
 
+interface IndicadorPorTema {
+  tema_id: string
+  tema_nome: string
+  tabela: string
+  total_registros: number
+  ultimo_registro: string | null
+}
+
 export function GestorPOPDashboard() {
   const { user } = useAuth()
   const [estatisticas, setEstatisticas] = useState<Estatisticas>({
@@ -40,35 +48,33 @@ export function GestorPOPDashboard() {
     percentualConclusao: 0
   })
   const [indicadoresPorSecao, setIndicadoresPorSecao] = useState<IndicadorPorSecao[]>([])
+  const [indicadoresPorTema, setIndicadoresPorTema] = useState<IndicadorPorTema[]>([])
   const [loading, setLoading] = useState(true)
 
   // Estados dos filtros
-  const [selectedSecoes, setSelectedSecoes] = useState<string[]>([])
-  const [selectedEquipes, setSelectedEquipes] = useState<string[]>([])
+  const [selectedBase, setSelectedBase] = useState<string | null>(null)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
   useEffect(() => {
     fetchEstatisticas()
-    fetchIndicadoresPorSecao()
-  }, [selectedSecoes, selectedEquipes, startDate, endDate])
+    if (selectedBase) {
+      fetchIndicadoresPorTema()
+    } else {
+      fetchIndicadoresPorSecao()
+    }
+  }, [selectedBase, startDate, endDate])
 
   const fetchEstatisticas = async () => {
     try {
       // Buscar total de seções
       let secoesQuery = supabase.from('secoes').select('id', { count: 'exact' })
-      if (selectedSecoes.length > 0) {
-        secoesQuery = secoesQuery.in('id', selectedSecoes)
-      }
       const { count: totalSecoes } = await secoesQuery
 
       // Buscar total de equipes
       let equipesQuery = supabase.from('equipes').select('id', { count: 'exact' })
-      if (selectedSecoes.length > 0) {
-        equipesQuery = equipesQuery.in('secao_id', selectedSecoes)
-      }
-      if (selectedEquipes.length > 0) {
-        equipesQuery = equipesQuery.in('id', selectedEquipes)
+      if (selectedBase) {
+        equipesQuery = equipesQuery.eq('secao_id', selectedBase)
       }
       const { count: totalEquipes } = await equipesQuery
 
@@ -81,22 +87,15 @@ export function GestorPOPDashboard() {
         .from('preenchimentos')
         .select('id', { count: 'exact' })
 
-      if (selectedSecoes.length > 0 || selectedEquipes.length > 0) {
+      if (selectedBase) {
         preenchimentosQuery = preenchimentosQuery
           .select(`
             id,
             profiles!inner (
-              secao_id,
-              equipe_id
+              secao_id
             )
           `, { count: 'exact' })
-
-        if (selectedSecoes.length > 0) {
-          preenchimentosQuery = preenchimentosQuery.in('profiles.secao_id', selectedSecoes)
-        }
-        if (selectedEquipes.length > 0) {
-          preenchimentosQuery = preenchimentosQuery.in('profiles.equipe_id', selectedEquipes)
-        }
+          .eq('profiles.secao_id', selectedBase)
       }
 
       if (startDate) {
@@ -126,47 +125,135 @@ export function GestorPOPDashboard() {
 
   const fetchIndicadoresPorSecao = async () => {
     try {
-      let query = supabase
+      const { data: secoes, error } = await supabase
         .from('secoes')
-        .select(`
-          id,
-          nome,
-          preenchimentos!inner (
-            id,
-            profiles!inner (
-              secao_id
-            )
-          )
-        `)
-
-      if (selectedSecoes.length > 0) {
-        query = query.in('id', selectedSecoes)
-      }
-
-      const { data: secoes, error } = await query
+        .select('id, nome')
+        .order('nome')
 
       if (error) throw error
 
-      // Simular dados de indicadores por seção
-      const indicadoresData: IndicadorPorSecao[] = (secoes || []).map(secao => {
-        const totalIndicadores = Math.floor(Math.random() * 50) + 20
-        const preenchidos = Math.floor(Math.random() * totalIndicadores)
-        const pendentes = totalIndicadores - preenchidos
-        const percentual = Math.round((preenchidos / totalIndicadores) * 100)
+      // Buscar total de indicadores (uma vez para todas as seções)
+      const { count: totalIndicadores } = await supabase
+        .from('indicadores')
+        .select('id', { count: 'exact', head: true })
+        .eq('ativo', true)
 
-        return {
-          secao_id: secao.id,
-          secao_nome: secao.nome,
-          total_indicadores: totalIndicadores,
-          preenchidos,
-          pendentes,
-          percentual
-        }
-      })
+      // Buscar dados reais de indicadores por seção
+      const indicadoresData: IndicadorPorSecao[] = await Promise.all(
+        (secoes || []).map(async (secao) => {
+          // Buscar preenchimentos da seção através de profiles
+          const { count: preenchidos } = await supabase
+            .from('preenchimentos')
+            .select('id, profiles!inner(secao_id)', { count: 'exact', head: true })
+            .eq('profiles.secao_id', secao.id)
+
+          const total = totalIndicadores || 0
+          const preenchidosCount = preenchidos || 0
+          const pendentes = total - preenchidosCount
+          const percentual = total > 0 ? Math.round((preenchidosCount / total) * 100) : 0
+
+          return {
+            secao_id: secao.id,
+            secao_nome: secao.nome,
+            total_indicadores: total,
+            preenchidos: preenchidosCount,
+            pendentes,
+            percentual
+          }
+        })
+      )
 
       setIndicadoresPorSecao(indicadoresData)
     } catch (error) {
       console.error('Erro ao buscar indicadores por seção:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchIndicadoresPorTema = async () => {
+    if (!selectedBase) return
+
+    try {
+      setLoading(true)
+
+      // Buscar indicadores por tema para a base selecionada
+      const indicadoresData: IndicadorPorTema[] = await Promise.all(
+        TEMAS_INDICADORES.map(async (tema) => {
+          try {
+            // Primeiro, tentar buscar com secao_id direto
+            let query = supabase
+              .from(tema.tabela)
+              .select('id, created_at', { count: 'exact' })
+              .eq('secao_id', selectedBase)
+              .order('created_at', { ascending: false })
+              .limit(1)
+
+            const { data, count, error } = await query
+
+            if (!error && count !== null) {
+              return {
+                tema_id: tema.id,
+                tema_nome: tema.nome,
+                tabela: tema.tabela,
+                total_registros: count || 0,
+                ultimo_registro: data && data.length > 0 ? data[0].created_at : null
+              }
+            }
+
+            // Se não funcionar, tentar através de profiles
+            try {
+              const { data: dataWithProfile, count: countWithProfile, error: errorProfile } = await supabase
+                .from(tema.tabela)
+                .select(`
+                  id,
+                  created_at,
+                  profiles!inner(secao_id)
+                `, { count: 'exact' })
+                .eq('profiles.secao_id', selectedBase)
+                .order('created_at', { ascending: false })
+                .limit(1)
+
+              if (!errorProfile) {
+                return {
+                  tema_id: tema.id,
+                  tema_nome: tema.nome,
+                  tabela: tema.tabela,
+                  total_registros: countWithProfile || 0,
+                  ultimo_registro: dataWithProfile && dataWithProfile.length > 0 
+                    ? dataWithProfile[0].created_at 
+                    : null
+                }
+              }
+            } catch (profileError) {
+              // Ignorar erro de profile
+            }
+
+            // Se nenhuma das abordagens funcionou, retornar zero
+            return {
+              tema_id: tema.id,
+              tema_nome: tema.nome,
+              tabela: tema.tabela,
+              total_registros: 0,
+              ultimo_registro: null
+            }
+          } catch (err) {
+            // Se a tabela não existir ou houver erro, retornar zero
+            console.warn(`Erro ao buscar dados da tabela ${tema.tabela}:`, err)
+            return {
+              tema_id: tema.id,
+              tema_nome: tema.nome,
+              tabela: tema.tabela,
+              total_registros: 0,
+              ultimo_registro: null
+            }
+          }
+        })
+      )
+
+      setIndicadoresPorTema(indicadoresData)
+    } catch (error) {
+      console.error('Erro ao buscar indicadores por tema:', error)
     } finally {
       setLoading(false)
     }
@@ -198,17 +285,9 @@ export function GestorPOPDashboard() {
 
         {/* Filtros Avançados */}
         <div className="flex flex-wrap gap-4">
-          <SecaoFilter
-            selectedSecoes={selectedSecoes}
-            onSecaoChange={setSelectedSecoes}
-            showAllOption={true}
-          />
-          
-          <EquipeFilter
-            selectedEquipes={selectedEquipes}
-            onEquipeChange={setSelectedEquipes}
-            secaoId={selectedSecoes.length === 1 ? selectedSecoes[0] : undefined}
-            showAllOption={true}
+          <BaseFilter
+            selectedBase={selectedBase}
+            onBaseChange={setSelectedBase}
           />
           
           <DateRangeFilter
@@ -220,15 +299,12 @@ export function GestorPOPDashboard() {
         </div>
 
         {/* Resumo dos Filtros Aplicados */}
-        {(selectedSecoes.length > 0 || selectedEquipes.length > 0 || startDate || endDate) && (
+        {(selectedBase || startDate || endDate) && (
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
             <div className="text-sm text-blue-800">
               <strong>Filtros aplicados:</strong>
-              {selectedSecoes.length > 0 && (
-                <span className="ml-2">• {selectedSecoes.length} seção(ões) selecionada(s)</span>
-              )}
-              {selectedEquipes.length > 0 && (
-                <span className="ml-2">• {selectedEquipes.length} equipe(s) selecionada(s)</span>
+              {selectedBase && (
+                <span className="ml-2">• Base selecionada</span>
               )}
               {(startDate || endDate) && (
                 <span className="ml-2">• Período personalizado</span>
@@ -301,75 +377,151 @@ export function GestorPOPDashboard() {
         </div>
       </div>
 
-      {/* Tabela de Indicadores por Seção */}
-      <div className="bg-white rounded-lg shadow-sm border">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Indicadores por Seção</h2>
-          <p className="text-sm text-gray-600">Status de preenchimento dos indicadores por seção</p>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Seção
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Preenchidos
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Pendentes
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  % Conclusão
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Progresso
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {indicadoresPorSecao.map((item) => (
-                <tr key={item.secao_id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{item.secao_nome}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{item.total_indicadores}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-green-600 font-medium">{item.preenchidos}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-red-600 font-medium">{item.pendentes}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{item.percentual}%</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${item.percentual}%` }}
-                      ></div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {indicadoresPorSecao.length === 0 && (
-          <div className="p-8 text-center text-gray-500">
-            Nenhum dado encontrado com os filtros aplicados
+      {/* Indicadores por Tema (quando base selecionada) ou por Seção */}
+      {selectedBase ? (
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center gap-3 mb-2">
+              <Building2 className="w-5 h-5 text-blue-600" />
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Indicadores por Tema</h2>
+                <p className="text-sm text-gray-600">
+                  Todos os indicadores da base selecionada agrupados por tema
+                </p>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+          
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {indicadoresPorTema.map((tema) => (
+                <div
+                  key={tema.tema_id}
+                  className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-base font-semibold text-gray-900 mb-1">
+                        {tema.tema_nome}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {TEMAS_INDICADORES.find(t => t.id === tema.tema_id)?.descricao || ''}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Total de Registros:</span>
+                      <span className="text-lg font-bold text-blue-600">
+                        {tema.total_registros}
+                      </span>
+                    </div>
+                    
+                    {tema.ultimo_registro && (
+                      <div className="pt-3 border-t border-gray-200">
+                        <span className="text-xs text-gray-500">
+                          Último registro:{' '}
+                          {new Date(tema.ultimo_registro).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {tema.total_registros === 0 && (
+                      <div className="pt-3 border-t border-gray-200">
+                        <span className="text-xs text-gray-400 italic">
+                          Nenhum registro encontrado
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {indicadoresPorTema.length === 0 && !loading && (
+              <div className="p-8 text-center text-gray-500">
+                Nenhum indicador encontrado para a base selecionada
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Indicadores por Seção</h2>
+            <p className="text-sm text-gray-600">Status de preenchimento dos indicadores por seção</p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Seção
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Preenchidos
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Pendentes
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    % Conclusão
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Progresso
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {indicadoresPorSecao.map((item) => (
+                  <tr key={item.secao_id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{item.secao_nome}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{item.total_indicadores}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-green-600 font-medium">{item.preenchidos}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-red-600 font-medium">{item.pendentes}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{item.percentual}%</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${item.percentual}%` }}
+                        ></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {indicadoresPorSecao.length === 0 && !loading && (
+            <div className="p-8 text-center text-gray-500">
+              Nenhum dado encontrado
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Ações Rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

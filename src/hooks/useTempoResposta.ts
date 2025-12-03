@@ -125,7 +125,8 @@ export const useTempoResposta = (secaoId?: string) => {
       let query = supabase
         .from('tempo_resposta')
         .select('*')
-        .order('data_tempo_resposta', { ascending: false });
+        .order('data_tempo_resposta', { ascending: false })
+        .limit(1000);
 
       if (filters?.secaoId) {
         query = query.eq('secao_id', filters.secaoId);
@@ -143,18 +144,42 @@ export const useTempoResposta = (secaoId?: string) => {
         query = query.lte('data_tempo_resposta', filters.dataFim);
       }
 
-      const { data, error } = await query;
+      // Executar query diretamente sem Promise.race
+      // O Supabase já tem timeout interno, mas vamos adicionar um timeout manual
+      const queryPromise = query;
+      
+      // Timeout de 30 segundos
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+        setTimeout(() => {
+          resolve({ data: null, error: { message: 'Timeout: A requisição demorou mais de 30 segundos' } });
+        }, 30000);
+      });
 
-      if (error) {
-        console.error('Erro ao buscar tempo de resposta:', error);
-        setError('Erro ao carregar dados');
+      // Race entre query e timeout
+      const result = await Promise.race([queryPromise, timeoutPromise]);
+
+      if (result.error) {
+        // Verificar se é timeout
+        if (result.error.message.includes('Timeout')) {
+          console.warn('⚠️ Timeout ao buscar tempo de resposta');
+          setError('A requisição demorou muito para responder. Tente novamente ou verifique sua conexão.');
+        } else {
+          console.error('Erro ao buscar tempo de resposta:', result.error);
+          setError('Erro ao carregar dados');
+        }
         return [];
       }
 
-      return data || [];
+      return result.data || [];
     } catch (err) {
-      console.error('Erro inesperado:', err);
-      setError('Erro inesperado ao carregar dados');
+      // Tratar timeout de forma mais suave
+      if (err instanceof Error && err.message.includes('Timeout')) {
+        console.warn('⚠️ Timeout na requisição de tempo de resposta');
+        setError('A requisição demorou muito para responder. Verifique sua conexão e tente novamente.');
+      } else {
+        console.error('Erro inesperado ao buscar tempo de resposta:', err);
+        setError('Erro inesperado ao carregar dados');
+      }
       return [];
     } finally {
       setLoading(false);

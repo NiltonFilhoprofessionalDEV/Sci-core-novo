@@ -12,35 +12,51 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null)
   const [rememberMe, setRememberMe] = useLocalStorage('rememberMe', false)
 
-  // Função para buscar perfil do usuário
+  // Função para buscar perfil do usuário com timeout
   const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
       console.log('🔍 useAuth - Buscando perfil para userId:', userId)
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          secao:secoes(*),
-          equipe:equipes(*)
-        `)
-        .eq('id', userId)
-        .eq('ativo', true)
-        .single()
+      // Adicionar timeout de 8 segundos para busca de perfil
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 8000)
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select(`
+            *,
+            secao:secoes(*),
+            equipe:equipes(*)
+          `)
+          .eq('id', userId)
+          .eq('ativo', true)
+          .single()
+          .abortSignal(controller.signal)
 
-      if (error) {
-        console.error('❌ useAuth - Erro ao buscar perfil:', error)
-        return null
+        clearTimeout(timeoutId)
+
+        if (error) {
+          console.error('❌ useAuth - Erro ao buscar perfil:', error)
+          return null
+        }
+
+        console.log('✅ useAuth - Perfil encontrado:', {
+          profile: data,
+          hasSecao: !!data?.secao,
+          secaoNome: data?.secao?.nome,
+          secaoId: data?.secao?.id
+        })
+
+        return data
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        if (fetchError.name === 'AbortError' || fetchError.message?.includes('timeout')) {
+          console.warn('⚠️ useAuth - Timeout ao buscar perfil, continuando sem perfil')
+          return null
+        }
+        throw fetchError
       }
-
-      console.log('✅ useAuth - Perfil encontrado:', {
-        profile: data,
-        hasSecao: !!data?.secao,
-        secaoNome: data?.secao?.nome,
-        secaoId: data?.secao?.id
-      })
-
-      return data
     } catch (error) {
       console.error('❌ useAuth - Erro ao buscar perfil:', error)
       return null
@@ -68,15 +84,24 @@ export function useAuth() {
       })
       setProfile(userProfile)
 
-      // Atualizar last_login se perfil existe
+      // Atualizar last_login se perfil existe (com timeout)
       if (userProfile) {
         try {
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 5000)
+          
           await supabase
             .from('profiles')
             .update({ last_login: new Date().toISOString() })
             .eq('id', authUser.id)
-        } catch (error) {
-          console.warn('⚠️ useAuth - Erro ao atualizar last_login:', error)
+            .abortSignal(controller.signal)
+          
+          clearTimeout(timeoutId)
+        } catch (error: any) {
+          // Ignorar erros de timeout silenciosamente
+          if (error.name !== 'AbortError' && !error.message?.includes('timeout')) {
+            console.warn('⚠️ useAuth - Erro ao atualizar last_login:', error)
+          }
         }
       }
     } else {
@@ -88,6 +113,7 @@ export function useAuth() {
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
+    let sessionTimeoutId: NodeJS.Timeout | null = null
     let isInitialized = false
     let isMounted = true
 
@@ -99,27 +125,50 @@ export function useAuth() {
         console.log('🔄 useAuth - Inicializando autenticação...')
         setError(null)
         
-        // Timeout reduzido para 8 segundos
+        // Timeout geral de 8 segundos para melhor responsividade
         timeoutId = setTimeout(() => {
           if (!isMounted) return
-          console.error('⏰ useAuth - Timeout na inicialização da autenticação')
-          setError('Timeout na conexão. Verifique sua conexão com a internet.')
+          console.log('⏰ useAuth - Timeout na inicialização da autenticação (8s)')
+          // Não definir erro, apenas continuar sem sessão
           setLoading(false)
         }, 8000)
 
-        // Obter sessão inicial com timeout próprio
-        const sessionPromise = supabase.auth.getSession()
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Session timeout')), 5000)
+        // Obter sessão inicial com timeout melhorado (sem gerar erro no console)
+        let sessionResolved = false
+        
+        const sessionPromise = supabase.auth.getSession().then(result => {
+          sessionResolved = true
+          if (sessionTimeoutId) clearTimeout(sessionTimeoutId)
+          return result
+        })
+        
+        const timeoutPromise = new Promise<{ data: { session: null }, error: null }>((resolve) => {
+          sessionTimeoutId = setTimeout(() => {
+            if (!sessionResolved) {
+              sessionResolved = true
+              console.log('⚠️ useAuth - Timeout na sessão (5s), continuando sem autenticação')
+              resolve({ data: { session: null }, error: null })
+            }
+          }, 5000) // Timeout de 5 segundos para melhor responsividade
         })
 
-        const { data: { session }, error: sessionError } = await Promise.race([
-          sessionPromise,
-          timeoutPromise
-        ]) as any
+        const result = await Promise.race([sessionPromise, timeoutPromise])
         
         if (!isMounted) return
 
+        const { data: { session }, error: sessionError } = result as any
+
+        // Se não há sessão e não há erro, provavelmente foi timeout
+        if (!session && !sessionError) {
+          console.log('⚠️ useAuth - Continuando sem sessão')
+          setSession(null)
+          setUser(null)
+          setProfile(null)
+          if (timeoutId) clearTimeout(timeoutId)
+          if (isMounted) setLoading(false)
+          return
+        }
+        
         if (sessionError) {
           console.error('❌ useAuth - Erro ao obter sessão:', sessionError)
           setError('Erro ao conectar com o servidor de autenticação.')
@@ -136,15 +185,15 @@ export function useAuth() {
         if (isMounted) setLoading(false)
       } catch (error) {
         if (!isMounted) return
-        console.error('❌ useAuth - Erro na inicialização:', error)
         
-        // Se for timeout, não mostrar como erro crítico
+        // Tratar erros de forma silenciosa se for timeout
         if (error instanceof Error && error.message === 'Session timeout') {
           console.log('⚠️ useAuth - Timeout na sessão, continuando sem autenticação')
           setSession(null)
           setUser(null)
           setProfile(null)
         } else {
+          console.error('❌ useAuth - Erro na inicialização:', error)
           setError('Erro inesperado na inicialização.')
         }
         
@@ -164,26 +213,118 @@ export function useAuth() {
       try {
         console.log('🔄 useAuth - Mudança de estado de autenticação:', _event)
         
-        // Evita processamento desnecessário se a sessão não mudou
-        if (_event === 'TOKEN_REFRESHED') {
-          setSession(session)
-          return
+        // Limpar timeouts quando há mudança de estado (evita timeouts durante navegação)
+        if (timeoutId) clearTimeout(timeoutId)
+        if (sessionTimeoutId) clearTimeout(sessionTimeoutId)
+        
+        // Tratar erros de refresh token inválido
+        if (_event === 'SIGNED_OUT' || _event === 'TOKEN_REFRESHED') {
+          // Se foi token refresh e não há sessão, significa que o refresh token é inválido
+          if (_event === 'TOKEN_REFRESHED' && !session) {
+            console.warn('⚠️ useAuth - Token refresh falhou, refresh token inválido')
+            // Limpar estado e tokens inválidos
+            setUser(null)
+            setProfile(null)
+            setSession(null)
+            setError('Sessão expirada. Por favor, faça login novamente.')
+            
+            // Limpar localStorage de tokens do Supabase
+            if (typeof window !== 'undefined') {
+              try {
+                const keys = Object.keys(localStorage)
+                keys.forEach(key => {
+                  if (key.includes('supabase.auth')) {
+                    localStorage.removeItem(key)
+                  }
+                })
+              } catch (e) {
+                console.warn('⚠️ useAuth - Erro ao limpar localStorage:', e)
+              }
+            }
+            
+            if (isMounted) setLoading(false)
+            
+            // Redirecionar para login após um breve delay
+            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+              setTimeout(() => {
+                window.location.href = '/login'
+              }, 1000)
+            }
+            return
+          }
+          
+          // Token refresh bem-sucedido
+          if (_event === 'TOKEN_REFRESHED' && session) {
+            setSession(session)
+            return
+          }
         }
         
         setSession(session)
         await updateUserData(session?.user ?? null)
-        if (isMounted) setLoading(false)
-      } catch (error) {
+        if (isMounted) {
+          setLoading(false)
+          setError(null) // Limpar erros anteriores quando há mudança de estado
+        }
+      } catch (error: any) {
         if (!isMounted) return
+        
+        // Verificar se é erro de refresh token inválido
+        const isInvalidRefreshToken = 
+          error?.message?.includes('Invalid Refresh Token') ||
+          error?.message?.includes('Refresh Token Not Found') ||
+          error?.message?.includes('refresh_token_not_found') ||
+          error?.status === 401
+        
+        if (isInvalidRefreshToken) {
+          console.warn('⚠️ useAuth - Refresh token inválido detectado, limpando sessão')
+          
+          // Limpar estado
+          setUser(null)
+          setProfile(null)
+          setSession(null)
+          setError('Sessão expirada. Por favor, faça login novamente.')
+          
+          // Limpar tokens do localStorage
+          if (typeof window !== 'undefined') {
+            try {
+              const keys = Object.keys(localStorage)
+              keys.forEach(key => {
+                if (key.includes('supabase.auth')) {
+                  localStorage.removeItem(key)
+                }
+              })
+              
+              // Tentar fazer logout no Supabase (sem bloquear se falhar)
+              supabase.auth.signOut().catch(() => {
+                // Ignorar erros de logout se já está desconectado
+              })
+            } catch (e) {
+              console.warn('⚠️ useAuth - Erro ao limpar tokens:', e)
+            }
+          }
+          
+          if (isMounted) setLoading(false)
+          
+          // Redirecionar para login
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            setTimeout(() => {
+              window.location.href = '/login'
+            }, 1000)
+          }
+          return
+        }
+        
         console.error('❌ useAuth - Erro na mudança de estado:', error)
-        setError('Erro ao processar mudança de autenticação.')
-        setLoading(false)
+        // Não definir erro crítico durante navegação, apenas logar
+        if (isMounted) setLoading(false)
       }
     })
 
     return () => {
       isMounted = false
       if (timeoutId) clearTimeout(timeoutId)
+      if (sessionTimeoutId) clearTimeout(sessionTimeoutId)
       subscription.unsubscribe()
     }
   }, [])

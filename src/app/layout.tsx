@@ -1,13 +1,28 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Source_Serif_4 } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SecoesProvider } from "@/contexts/SecoesContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Toaster } from "sonner";
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const sourceSerif = Source_Serif_4({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -39,14 +54,16 @@ export default function RootLayout({
         <head />
       )}
       <body
-        className={`${inter.variable} font-sans antialiased`}
+        className={`${inter.variable} ${sourceSerif.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
-        <AuthProvider>
-          <SecoesProvider>
-            {children}
-            <Toaster position="top-right" />
-          </SecoesProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <SecoesProvider>
+              {children}
+              <Toaster position="top-right" />
+            </SecoesProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

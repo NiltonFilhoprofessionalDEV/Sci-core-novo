@@ -1,0 +1,126 @@
+/* Utility classes para facilitar o uso das variáveis CSS do tema */
+
+/* Backgrounds */
+.bg-theme-background {
+  background-color: var(--background);
+}
+
+.bg-theme-card {
+  background-color: var(--card);
+}
+
+.bg-theme-primary {
+  background-color: var(--primary);
+}
+
+.bg-theme-muted {
+  background-color: var(--muted);
+}
+
+.bg-theme-sidebar {
+  background-color: var(--sidebar);
+}
+
+/* Text Colors */
+.text-theme-foreground {
+  color: var(--foreground);
+}
+
+.text-theme-muted {
+  color: var(--muted-foreground);
+}
+
+.text-theme-primary {
+  color: var(--primary);
+}
+
+.text-theme-sidebar {
+  color: var(--sidebar-foreground);
+}
+
+/* Borders */
+.border-theme {
+  border-color: var(--border);
+}
+
+.border-theme-primary {
+  border-color: var(--primary);
+}
+
+.border-theme-sidebar {
+  border-color: var(--sidebar-border);
+}
+
+/* Shadows */
+.shadow-theme-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.shadow-theme {
+  box-shadow: var(--shadow);
+}
+
+.shadow-theme-md {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-theme-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Cards */
+.card-theme {
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: var(--muted);
+}
+
+/* Inputs */
+.input-theme {
+  background-color: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+}
+
+.input-theme:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 40%, transparent);
+  border-color: var(--ring);
+}
+
+.input-theme::placeholder {
+  color: var(--muted-foreground);
+}
+

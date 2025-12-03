@@ -597,7 +597,11 @@ export function ModalHorasTreinamento({
                   <div>
                     <span className="font-medium text-gray-600">Data:</span>
                     <p className="text-black">
-                      {new Date(`${formData.data_ptr_ba}T00:00:00`).toLocaleDateString('pt-BR')}
+                      {(() => {
+                        if (!formData.data_ptr_ba) return ''
+                        const [year, month, day] = formData.data_ptr_ba.split('-').map(Number)
+                        return new Date(year, month - 1, day).toLocaleDateString('pt-BR')
+                      })()}
                     </p>
                   </div>
                   <div>

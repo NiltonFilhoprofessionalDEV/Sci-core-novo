@@ -248,7 +248,7 @@ export default function PreencherIndicadoresPage() {
         <DashboardLayout>
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
-              <AlertTriangle className="w-16 h-16 text-[#ff6600] mx-auto mb-4" />
+              <AlertTriangle className="w-16 h-16 text-primary mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-[#1f1f1f] mb-2">Acesso Restrito</h2>
               <p className="text-[#7a5b3e]/70">Você não tem permissão para preencher indicadores.</p>
             </div>
@@ -279,7 +279,7 @@ export default function PreencherIndicadoresPage() {
               </div>
               
               <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-[#ff6600]" />
+                <Target className="w-5 h-5 text-primary" />
                 <span className="text-sm text-[#1f1f1f] font-medium">{temas.length} temas disponíveis</span>
               </div>
             </div>
@@ -288,8 +288,8 @@ export default function PreencherIndicadoresPage() {
           {/* Informações de Uso */}
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <div className="p-1 bg-[#ff6600]/20 rounded-full">
-                <CheckCircle className="w-4 h-4 text-[#ff6600]" />
+              <div className="p-1 bg-primary/20 rounded-full">
+                <CheckCircle className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-[#1f1f1f] mb-1">Como usar esta página</h3>
@@ -313,7 +313,7 @@ export default function PreencherIndicadoresPage() {
                   className={`
                     relative cursor-pointer group transition-all duration-200 
                     ${isSelected 
-                      ? 'bg-[#ff6600] text-white border-2 border-[#ff6600] shadow-lg scale-105' 
+                      ? 'bg-primary text-white border-2 border-primary shadow-lg scale-105' 
                       : 'bg-[#f3f4f6] border border-[#e5e7eb] hover:shadow-md hover:scale-[1.02] hover:bg-[#eceff3]'
                     }
                     rounded-lg p-4
@@ -321,7 +321,7 @@ export default function PreencherIndicadoresPage() {
                 >
                   {/* Indicador de Seleção */}
                   {isSelected && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-[#ff6600] rounded-full flex items-center justify-center shadow-sm">
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-sm">
                       <CheckCircle className="w-4 h-4 text-white" />
                     </div>
                   )}
@@ -330,9 +330,9 @@ export default function PreencherIndicadoresPage() {
                   <div className="space-y-3">
                     <div className="flex items-start justify-between">
                       <div className={`p-2 rounded-lg ${isSelected ? 'bg-white/20' : 'bg-[#e5e7eb]'}`}>
-                        <IconComponent className={`w-6 h-6 ${isSelected ? 'text-white' : 'text-[#ff6600]'}`} />
+                        <IconComponent className={`w-6 h-6 ${isSelected ? 'text-white' : 'text-primary'}`} />
                       </div>
-                      <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isSelected ? 'rotate-90 text-white' : 'group-hover:translate-x-1 text-[#ff6600]'}`} />
+                      <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isSelected ? 'rotate-90 text-white' : 'group-hover:translate-x-1 text-primary'}`} />
                     </div>
 
                     <div>

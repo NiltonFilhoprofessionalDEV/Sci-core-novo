@@ -436,7 +436,11 @@ export default function ModalTempoResposta({ isOpen, onClose, onSuccess }: Modal
                   <div>
                     <span className="font-medium text-black">Data:</span>
                     <span className="ml-2 text-gray-900">
-                      {new Date(formData.data_tempo_resposta + 'T00:00:00').toLocaleDateString('pt-BR')}
+                      {(() => {
+                        if (!formData.data_tempo_resposta) return ''
+                        const [year, month, day] = formData.data_tempo_resposta.split('-').map(Number)
+                        return new Date(year, month - 1, day).toLocaleDateString('pt-BR')
+                      })()}
                     </span>
                   </div>
                   <div>

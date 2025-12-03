@@ -30,18 +30,27 @@ export default function DateRangeFilter({
     onDateChange('', '')
   }
 
+  // Função helper para formatar data sem problemas de timezone
+  const formatDateLocal = (dateString: string): string => {
+    if (!dateString) return ''
+    // Parse a string YYYY-MM-DD e cria a data no fuso horário local
+    const [year, month, day] = dateString.split('-').map(Number)
+    const date = new Date(year, month - 1, day) // month é 0-indexed
+    return date.toLocaleDateString('pt-BR')
+  }
+
   const getDisplayText = () => {
     if (!startDate && !endDate) return 'Selecionar período'
     if (startDate && endDate) {
-      const start = new Date(startDate).toLocaleDateString('pt-BR')
-      const end = new Date(endDate).toLocaleDateString('pt-BR')
+      const start = formatDateLocal(startDate)
+      const end = formatDateLocal(endDate)
       return `${start} - ${end}`
     }
     if (startDate) {
-      return `A partir de ${new Date(startDate).toLocaleDateString('pt-BR')}`
+      return `A partir de ${formatDateLocal(startDate)}`
     }
     if (endDate) {
-      return `Até ${new Date(endDate).toLocaleDateString('pt-BR')}`
+      return `Até ${formatDateLocal(endDate)}`
     }
     return 'Selecionar período'
   }
@@ -93,7 +102,7 @@ export default function DateRangeFilter({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[200px]"
+        className="flex items-center justify-between gap-2 px-4 py-2 border border-input rounded-lg bg-background hover:bg-accent transition-colors min-w-[200px]"
       >
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-gray-600" />
@@ -104,7 +113,7 @@ export default function DateRangeFilter({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+        <div className="absolute top-full left-0 mt-1 w-80 bg-popover border border-border rounded-lg shadow-lg z-50">
           <div className="p-3 border-b border-gray-100">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-900">{label}</h3>
@@ -125,7 +134,7 @@ export default function DateRangeFilter({
                   type="date"
                   value={startDate}
                   onChange={(e) => handleStartDateChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-input rounded text-sm focus:ring-2 focus:ring-ring focus:border-ring"
                 />
               </div>
 
@@ -137,7 +146,7 @@ export default function DateRangeFilter({
                   type="date"
                   value={endDate}
                   onChange={(e) => handleEndDateChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-input rounded text-sm focus:ring-2 focus:ring-ring focus:border-ring"
                 />
               </div>
 

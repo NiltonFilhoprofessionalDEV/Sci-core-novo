@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -17,7 +17,7 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>
 
-export default function LoginPage() {
+function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -186,5 +186,23 @@ export default function LoginPage() {
         </div>
       </div>
     </Layout>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <Layout>
+        <div className="w-full max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl overflow-hidden">
+          <div className="flex min-h-[600px] items-center justify-center">
+            <div className="text-center">
+              <p className="text-black">Carregando...</p>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }

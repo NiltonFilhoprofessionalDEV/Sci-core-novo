@@ -41,18 +41,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // CSP será configurado via next.config.ts e middleware.ts
+  // Não precisamos configurar aqui para evitar duplicação
   return (
     <html lang="pt-BR">
-      {process.env.NODE_ENV === 'development' ? (
-        <head>
-          <meta
-            httpEquiv="Content-Security-Policy"
-            content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' http://localhost:* ws://localhost:* https://*.supabase.co; font-src 'self' data:; object-src 'none'; frame-ancestors 'none';"
-          />
-        </head>
-      ) : (
-        <head />
-      )}
+      <head />
       <body
         className={`${inter.variable} ${sourceSerif.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >

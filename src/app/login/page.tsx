@@ -23,7 +23,7 @@ function LoginForm() {
   const [error, setError] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { signIn } = useAuthContext()
+  const { signIn, user, profile, loading: authLoading } = useAuthContext()
 
   // Verificar se a sessão expirou
   useEffect(() => {
@@ -43,6 +43,17 @@ function LoginForm() {
     resolver: zodResolver(loginSchema),
   })
 
+  // Efeito para redirecionar quando o perfil estiver carregado após login
+  useEffect(() => {
+    if (!isLoading && user && profile?.ativo && !authLoading) {
+      console.log('✅ Login - Perfil carregado, redirecionando para dashboard')
+      // Pequeno delay para garantir que tudo está pronto
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 100)
+    }
+  }, [user, profile, authLoading, isLoading, router])
+
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
     setError('')
@@ -52,12 +63,14 @@ function LoginForm() {
       
       if (error) {
         setError('Email ou senha incorretos')
+        setIsLoading(false)
       } else {
-        router.push('/dashboard')
+        // Não redirecionar aqui - o useEffect vai fazer isso quando o perfil estiver carregado
+        // Aguardar um pouco para o perfil ser carregado
+        console.log('🔄 Login - Aguardando carregamento do perfil...')
       }
     } catch (err) {
       setError('Erro ao fazer login. Tente novamente.')
-    } finally {
       setIsLoading(false)
     }
   }
@@ -173,10 +186,10 @@ function LoginForm() {
                 {/* Botão de Login */}
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || (authLoading && user)}
                   className="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? 'Entrando...' : 'Entrar'}
+                  {isLoading ? 'Entrando...' : (authLoading && user ? 'Carregando perfil...' : 'Entrar')}
                 </button>
               </form>
 

@@ -17,9 +17,9 @@ export function useAuth() {
     try {
       console.log('🔍 useAuth - Buscando perfil para userId:', userId)
       
-      // Adicionar timeout de 8 segundos para busca de perfil
+      // Adicionar timeout de 15 segundos para busca de perfil (aumentado para produção)
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 8000)
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
       
       try {
         const { data, error } = await supabase
@@ -38,6 +38,27 @@ export function useAuth() {
 
         if (error) {
           console.error('❌ useAuth - Erro ao buscar perfil:', error)
+          // Se o erro for "PGRST116" (nenhum resultado), tentar sem filtro de ativo
+          if (error.code === 'PGRST116' || error.message?.includes('No rows')) {
+            console.log('🔄 useAuth - Perfil não encontrado com ativo=true, tentando sem filtro...')
+            const { data: dataWithoutActive, error: errorWithoutActive } = await supabase
+              .from('profiles')
+              .select(`
+                *,
+                secao:secoes(*),
+                equipe:equipes(*)
+              `)
+              .eq('id', userId)
+              .single()
+            
+            if (errorWithoutActive) {
+              console.error('❌ useAuth - Erro ao buscar perfil sem filtro ativo:', errorWithoutActive)
+              return null
+            }
+            
+            console.log('✅ useAuth - Perfil encontrado (sem filtro ativo):', dataWithoutActive)
+            return dataWithoutActive
+          }
           return null
         }
 
@@ -217,6 +238,19 @@ export function useAuth() {
         if (timeoutId) clearTimeout(timeoutId)
         if (sessionTimeoutId) clearTimeout(sessionTimeoutId)
         
+        // Tratar evento SIGNED_IN especificamente
+        if (_event === 'SIGNED_IN' && session?.user) {
+          console.log('✅ useAuth - Usuário fez login, carregando perfil...')
+          setSession(session)
+          setLoading(true) // Manter loading enquanto carrega perfil
+          await updateUserData(session.user)
+          if (isMounted) {
+            setLoading(false)
+            setError(null)
+          }
+          return
+        }
+        
         // Tratar erros de refresh token inválido
         if (_event === 'SIGNED_OUT' || _event === 'TOKEN_REFRESHED') {
           // Se foi token refresh e não há sessão, significa que o refresh token é inválido
@@ -266,6 +300,7 @@ export function useAuth() {
           }
         }
         
+        // Outros eventos (INITIAL_SESSION, etc)
         setSession(session)
         await updateUserData(session?.user ?? null)
         if (isMounted) {
@@ -347,12 +382,23 @@ export function useAuth() {
       if (error) throw error
       
       setRememberMe(remember)
+      
+      // O onAuthStateChange vai atualizar o perfil automaticamente
+      // Mas vamos tentar carregar o perfil imediatamente também para melhorar a experiência
+      if (data?.user) {
+        console.log('🔄 useAuth - Carregando perfil após login...')
+        // Carregar perfil em background (não bloquear)
+        updateUserData(data.user).catch(err => {
+          console.warn('⚠️ useAuth - Erro ao carregar perfil após login:', err)
+        })
+      }
+      
+      setLoading(false)
       return { data, error: null }
     } catch (error) {
       console.error('❌ useAuth - Erro no login:', error)
-      return { data: null, error }
-    } finally {
       setLoading(false)
+      return { data: null, error }
     }
   }
 

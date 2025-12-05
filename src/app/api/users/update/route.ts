@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Cliente Supabase com service role key para operações admin
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
+// Função para criar cliente Supabase admin (lazy initialization)
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Variáveis de ambiente do Supabase não configuradas')
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     }
-  }
-)
+  })
+}
 
 export async function PUT(request: NextRequest) {
   try {
@@ -31,6 +36,8 @@ export async function PUT(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    const supabaseAdmin = getSupabaseAdmin()
 
     const body = await request.json()
     const { user_id, nome_completo, email, equipe_id, password } = body

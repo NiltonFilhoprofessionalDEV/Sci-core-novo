@@ -256,6 +256,12 @@ export function useAuth() {
           // Token refresh bem-sucedido
           if (_event === 'TOKEN_REFRESHED' && session) {
             setSession(session)
+            // Atualizar dados do usuário após refresh do token
+            await updateUserData(session.user)
+            if (isMounted) {
+              setLoading(false)
+              setError(null)
+            }
             return
           }
         }

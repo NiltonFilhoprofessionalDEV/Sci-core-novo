@@ -2,10 +2,9 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== 'production'
 
-const scriptSources = ["'self'"]
-if (isDev) {
-  scriptSources.push("'unsafe-eval'", "'unsafe-inline'")
-}
+// Incluir 'unsafe-eval' e 'unsafe-inline' também em produção
+// pois o Next.js e algumas bibliotecas podem precisar disso
+const scriptSources = ["'self'", "'unsafe-eval'", "'unsafe-inline'"]
 
 const connectSources = ["'self'", "https://*.supabase.co"]
 if (isDev) {

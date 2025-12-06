@@ -34,6 +34,7 @@ interface SecoesContextType {
   getEquipesBySecao: (secaoId: string) => Equipe[]
   refreshSecoes: () => Promise<void>
   refreshEquipes: (secaoId: string) => Promise<void>
+  clearAllCaches: () => void
   
   // Cache status
   isSecoesLoaded: boolean
@@ -76,14 +77,28 @@ export function SecoesProvider({ children }: SecoesProviderProps) {
       // Tentar carregar do cache primeiro
       const cachedData = localStorage.getItem(CACHE_KEY_SECOES)
       if (cachedData) {
-        const { data, timestamp } = JSON.parse(cachedData)
-        if (isCacheValid(timestamp)) {
-          console.log('📦 Carregando seções do cache local')
-          setSecoes(data)
-          setIsSecoesLoaded(true)
-          setLastUpdated(new Date(timestamp))
-          setLoading(false)
-          return
+        try {
+          const parsed = JSON.parse(cachedData)
+          
+          // Validar estrutura do cache
+          if (parsed && parsed.data && Array.isArray(parsed.data) && parsed.timestamp) {
+            if (isCacheValid(parsed.timestamp)) {
+              console.log('📦 Carregando seções do cache local')
+              setSecoes(parsed.data)
+              setIsSecoesLoaded(true)
+              setLastUpdated(new Date(parsed.timestamp))
+              setLoading(false)
+              return
+            } else {
+              console.log('⏰ Cache expirado, buscando dados atualizados')
+            }
+          } else {
+            console.warn('⚠️ Cache com estrutura inválida, limpando...')
+            localStorage.removeItem(CACHE_KEY_SECOES)
+          }
+        } catch (parseError) {
+          console.warn('⚠️ Erro ao fazer parse do cache, limpando...', parseError)
+          localStorage.removeItem(CACHE_KEY_SECOES)
         }
       }
 
@@ -95,24 +110,33 @@ export function SecoesProvider({ children }: SecoesProviderProps) {
         .eq('ativa', true)
         .order('nome')
 
-      if (error) throw error
+      if (error) {
+        throw new Error(`Erro ao buscar seções: ${error.message || JSON.stringify(error)}`)
+      }
 
       const secoesData = data || []
       setSecoes(secoesData)
       setIsSecoesLoaded(true)
       
       // Salvar no cache
-      const cacheData = {
-        data: secoesData,
-        timestamp: new Date().toISOString()
+      try {
+        const cacheData = {
+          data: secoesData,
+          timestamp: new Date().toISOString()
+        }
+        localStorage.setItem(CACHE_KEY_SECOES, JSON.stringify(cacheData))
+        setLastUpdated(new Date())
+      } catch (cacheError) {
+        console.warn('⚠️ Erro ao salvar cache (continuando normalmente):', cacheError)
       }
-      localStorage.setItem(CACHE_KEY_SECOES, JSON.stringify(cacheData))
-      setLastUpdated(new Date())
 
       console.log(`✅ ${secoesData.length} seções carregadas e cacheadas`)
     } catch (err) {
-      console.error('❌ Erro ao carregar seções:', err)
-      setError(err instanceof Error ? err.message : 'Erro ao carregar seções')
+      const errorMessage = err instanceof Error ? err.message : 
+                          (typeof err === 'object' && err !== null ? JSON.stringify(err) : 
+                          'Erro desconhecido ao carregar seções')
+      console.error('❌ Erro ao carregar seções:', errorMessage)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -126,15 +150,29 @@ export function SecoesProvider({ children }: SecoesProviderProps) {
       const cachedEquipes = localStorage.getItem(cacheKey)
       
       if (cachedEquipes) {
-        const { data, timestamp } = JSON.parse(cachedEquipes)
-        if (isCacheValid(timestamp)) {
-          console.log(`📦 Carregando equipes da seção ${secaoId} do cache`)
-          // Atualizar apenas as equipes desta seção
-          setEquipes(prev => {
-            const filtered = prev.filter(e => e.secao_id !== secaoId)
-            return [...filtered, ...data]
-          })
-          return data
+        try {
+          const parsed = JSON.parse(cachedEquipes)
+          
+          // Validar estrutura do cache
+          if (parsed && parsed.data && Array.isArray(parsed.data) && parsed.timestamp) {
+            if (isCacheValid(parsed.timestamp)) {
+              console.log(`📦 Carregando equipes da seção ${secaoId} do cache`)
+              // Atualizar apenas as equipes desta seção
+              setEquipes(prev => {
+                const filtered = prev.filter(e => e.secao_id !== secaoId)
+                return [...filtered, ...parsed.data]
+              })
+              return parsed.data
+            } else {
+              console.log(`⏰ Cache de equipes da seção ${secaoId} expirado`)
+            }
+          } else {
+            console.warn(`⚠️ Cache de equipes com estrutura inválida, limpando...`)
+            localStorage.removeItem(cacheKey)
+          }
+        } catch (parseError) {
+          console.warn(`⚠️ Erro ao fazer parse do cache de equipes, limpando...`, parseError)
+          localStorage.removeItem(cacheKey)
         }
       }
 
@@ -146,7 +184,9 @@ export function SecoesProvider({ children }: SecoesProviderProps) {
         .eq('ativa', true)
         .order('nome')
 
-      if (error) throw error
+      if (error) {
+        throw new Error(`Erro ao buscar equipes: ${error.message || JSON.stringify(error)}`)
+      }
 
       const equipesData = data || []
       
@@ -157,17 +197,24 @@ export function SecoesProvider({ children }: SecoesProviderProps) {
       })
 
       // Salvar no cache
-      const cacheData = {
-        data: equipesData,
-        timestamp: new Date().toISOString()
+      try {
+        const cacheData = {
+          data: equipesData,
+          timestamp: new Date().toISOString()
+        }
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData))
+      } catch (cacheError) {
+        console.warn('⚠️ Erro ao salvar cache de equipes (continuando normalmente):', cacheError)
       }
-      localStorage.setItem(cacheKey, JSON.stringify(cacheData))
 
       console.log(`✅ ${equipesData.length} equipes da seção ${secaoId} carregadas`)
       return equipesData
     } catch (err) {
-      console.error(`❌ Erro ao carregar equipes da seção ${secaoId}:`, err)
-      throw err
+      const errorMessage = err instanceof Error ? err.message : 
+                          (typeof err === 'object' && err !== null ? JSON.stringify(err) : 
+                          `Erro desconhecido ao carregar equipes da seção ${secaoId}`)
+      console.error(`❌ Erro ao carregar equipes da seção ${secaoId}:`, errorMessage)
+      throw new Error(errorMessage)
     }
   }, [])
 
@@ -198,12 +245,36 @@ export function SecoesProvider({ children }: SecoesProviderProps) {
     await loadEquipesBySecao(secaoId)
   }, [loadEquipesBySecao])
 
+  // Limpar todos os caches
+  const clearAllCaches = useCallback(() => {
+    try {
+      // Limpar cache de seções
+      localStorage.removeItem(CACHE_KEY_SECOES)
+      
+      // Limpar todos os caches de equipes
+      const keys = Object.keys(localStorage)
+      keys.forEach(key => {
+        if (key.startsWith(CACHE_KEY_EQUIPES)) {
+          localStorage.removeItem(key)
+        }
+      })
+      
+      console.log('🗑️ Todos os caches foram limpos')
+    } catch (error) {
+      console.warn('⚠️ Erro ao limpar caches:', error)
+    }
+  }, [])
+
   // Carregar seções automaticamente quando o contexto é inicializado
   useEffect(() => {
     if (!isSecoesLoaded && !loading) {
-      loadSecoes()
+      loadSecoes().catch(err => {
+        console.error('❌ Falha crítica ao carregar seções:', err)
+        // Em caso de erro crítico, limpar cache e tentar novamente
+        clearAllCaches()
+      })
     }
-  }, [isSecoesLoaded, loading])
+  }, [isSecoesLoaded, loading, loadSecoes, clearAllCaches])
 
   // Pré-carregar equipes da seção do usuário
   useEffect(() => {
@@ -211,10 +282,12 @@ export function SecoesProvider({ children }: SecoesProviderProps) {
       const equipesJaCarregadas = equipes.some(e => e.secao_id === profile.secao_id)
       if (!equipesJaCarregadas) {
         console.log('🚀 Pré-carregando equipes da seção do usuário:', profile.secao_id)
-        loadEquipesBySecao(profile.secao_id)
+        loadEquipesBySecao(profile.secao_id).catch(err => {
+          console.error('❌ Erro ao pré-carregar equipes:', err)
+        })
       }
     }
-  }, [profile?.secao_id, isSecoesLoaded, loading])
+  }, [profile?.secao_id, isSecoesLoaded, loading, equipes, loadEquipesBySecao])
 
   const contextValue: SecoesContextType = {
     // Estados
@@ -229,6 +302,7 @@ export function SecoesProvider({ children }: SecoesProviderProps) {
     getEquipesBySecao,
     refreshSecoes,
     refreshEquipes,
+    clearAllCaches,
     
     // Cache status
     isSecoesLoaded,

@@ -36,12 +36,28 @@ npm install
 
 3. Configure as variáveis de ambiente:
 
-Crie um arquivo `.env.local` na raiz do projeto com as seguintes variáveis:
+Copie o arquivo `.env.example` para `.env.local`:
+
+```bash
+# Windows
+copy .env.example .env.local
+
+# Linux/Mac
+cp .env.example .env.local
+```
+
+Edite `.env.local` e substitua os valores pelos dados reais do seu projeto Supabase:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
+NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_publica_aqui
+SUPABASE_SERVICE_ROLE_KEY=sua_chave_service_role_aqui
 ```
+
+**⚠️ IMPORTANTE:** 
+- Obtenha as credenciais em: [Supabase Dashboard](https://supabase.com/dashboard) → Settings → API
+- O arquivo `.env.local` **NUNCA** deve ser commitado no Git
+- A `SERVICE_ROLE_KEY` é **SECRETA** e só deve ser usada no servidor (API routes)
 
 4. Execute as migrações do banco de dados:
 - Acesse o dashboard do Supabase
@@ -136,11 +152,24 @@ O sistema utiliza Supabase Auth com:
 
 ## 🔒 Segurança
 
-- Row Level Security (RLS) implementado no Supabase
-- Isolamento de dados por perfil e localização
-- Políticas de acesso granulares
-- Logs de segurança
-- Validação de dados no client e server
+### Configuração de Variáveis de Ambiente
+- ✅ Todas as credenciais estão em `.env.local` (não versionado)
+- ✅ Arquivo `.env.example` fornece template sem dados sensíveis
+- ✅ Validação automática de variáveis de ambiente ausentes
+- ✅ Service Role Key protegida e usada apenas no servidor
+
+### Segurança do Banco de Dados
+- ✅ Row Level Security (RLS) implementado no Supabase
+- ✅ Isolamento de dados por perfil e localização
+- ✅ Políticas de acesso granulares
+- ✅ Logs de segurança
+- ✅ Validação de dados no client e server
+
+### Boas Práticas
+- 🔐 Nunca commite arquivos `.env.local` ou `.env`
+- 🔐 Rotacione credenciais periodicamente
+- 🔐 Use `SUPABASE_SERVICE_ROLE_KEY` apenas em API routes
+- 🔐 `NEXT_PUBLIC_*` pode ser exposto no frontend (use apenas para dados públicos)
 
 ## 📊 Performance
 

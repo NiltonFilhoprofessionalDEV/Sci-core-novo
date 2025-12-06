@@ -48,6 +48,21 @@ next-env.d.ts
 *.temp
 check_users_temp.sql
 
+# Debug scripts
+debug-*.js
+test-*.js
+
+# Temporary SQL
+temp_*.sql
+*_temp.sql
+
+# Temporary data
+tempo_*.json
+
+# Archived data
+/data/archived/*
+!/data/archived/.gitkeep
+
 # OS generated files
 Thumbs.db
 .DS_Store

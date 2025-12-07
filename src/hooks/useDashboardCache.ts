@@ -9,8 +9,8 @@ interface CacheEntry<T> {
 
 // Cache global em memória
 const dashboardCache = new Map<string, CacheEntry<any>>()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos (aumentado de 2 para 5)
-const STALE_TIME = 10 * 60 * 1000 // 10 minutos - dados podem ser considerados stale mas ainda usáveis
+const CACHE_DURATION = 30 * 60 * 1000 // 30 minutos - dados operacionais mudam com pouca frequência
+const STALE_TIME = 60 * 60 * 1000 // 1 hora - dados podem ser considerados stale mas ainda usáveis
 
 export function useDashboardCache<T>(cacheKey: string) {
   const cacheKeyRef = useRef(cacheKey)

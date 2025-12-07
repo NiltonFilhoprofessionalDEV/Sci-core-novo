@@ -126,9 +126,9 @@ export function useDashboardData<T>({
 
     setIsReady(true)
 
-    // Evitar requisições muito frequentes (debounce de 300ms)
+    // Evitar requisições muito frequentes (debounce de 500ms)
     const now = Date.now()
-    if (!forceRefresh && now - lastFetchTimeRef.current < 300) {
+    if (!forceRefresh && now - lastFetchTimeRef.current < 500) {
       return
     }
     lastFetchTimeRef.current = now
@@ -208,11 +208,11 @@ export function useDashboardData<T>({
         }
       }
 
-      // Timeout de 15 segundos (reduzido para melhor responsividade)
+      // Timeout de 8 segundos (otimizado para melhor responsividade)
       const timeoutPromise = new Promise<never>((_, reject) => {
         fetchTimeoutRef.current = setTimeout(() => {
           reject(new Error('Timeout: A requisição demorou muito para responder'))
-        }, 15000)
+        }, 8000)
       })
 
       // Promise de query

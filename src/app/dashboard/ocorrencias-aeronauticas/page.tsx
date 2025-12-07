@@ -16,6 +16,7 @@ import {
 
 import { useAuth } from '@/hooks/useAuth'
 import { useDashboardData } from '@/hooks/useDashboardData'
+import { useDebounce } from '@/hooks/useDebounce'
 import { Pagination } from '@/components/ui/pagination'
 import BaseFilter from '@/components/filters/BaseFilter'
 import EquipeFilter from '@/components/filters/EquipeFilter'
@@ -68,6 +69,11 @@ export default function OcorrenciasAeronauticasDashboard() {
   const [selectedEquipes, setSelectedEquipes] = useState<string[]>([])
   const [selectedMes, setSelectedMes] = useState<string | null>(null)
   
+  // Debounce dos filtros para evitar múltiplas requisições
+  const debouncedBase = useDebounce(selectedBase, 800)
+  const debouncedEquipes = useDebounce(selectedEquipes, 800)
+  const debouncedMes = useDebounce(selectedMes, 800)
+  
   const isGestorPOP = user?.profile?.perfil === 'gestor_pop'
   const isBace = user?.profile?.perfil === 'ba_ce'
   const isGerenteSecao = user?.profile?.perfil === 'gerente_secao'
@@ -79,12 +85,12 @@ export default function OcorrenciasAeronauticasDashboard() {
       ? (user?.profile?.secao_id ?? user?.profile?.secao?.id)
       : undefined
   
-  // Memoizar a função de filtros
+  // Memoizar a função de filtros - usando valores debounced
   const additionalFilters = useMemo(() => {
     return (query: any) => {
       // Filtro por base (Gestor POP)
-      if (isGestorPOP && selectedBase) {
-        query = query.eq('secao_id', selectedBase)
+      if (isGestorPOP && debouncedBase) {
+        query = query.eq('secao_id', debouncedBase)
       }
       
       // Filtro por seção (BA-CE e Gerente de Seção)
@@ -93,13 +99,13 @@ export default function OcorrenciasAeronauticasDashboard() {
       }
       
       // Filtro por equipes
-      if (selectedEquipes.length > 0) {
-        query = query.in('equipe_id', selectedEquipes)
+      if (debouncedEquipes.length > 0) {
+        query = query.in('equipe_id', debouncedEquipes)
       }
       
       // Filtro por mês de referência
-      if (selectedMes) {
-        const [ano, mes] = selectedMes.split('-')
+      if (debouncedMes) {
+        const [ano, mes] = debouncedMes.split('-')
         const anoNum = parseInt(ano, 10)
         const mesNum = parseInt(mes, 10)
         const startDate = new Date(anoNum, mesNum - 1, 1).toISOString().split('T')[0]
@@ -110,7 +116,7 @@ export default function OcorrenciasAeronauticasDashboard() {
       
       return query
     }
-  }, [isGestorPOP, isBace, isGerenteSecao, selectedBase, selectedEquipes, selectedMes, user?.profile?.secao_id])
+  }, [isGestorPOP, isBace, isGerenteSecao, debouncedBase, debouncedEquipes, debouncedMes, user?.profile?.secao_id])
 
   // Usar hook unificado para carregamento de dados
   const { 
@@ -124,16 +130,16 @@ export default function OcorrenciasAeronauticasDashboard() {
     selectFields: `id, secao_id, equipe_id, equipe, cidade_aeroporto, data_ocorrencia, posicionamento_intervencao, local_ocorrencia, tempo_chegada_primeiro_cci, tempo_chegada_ultimo_cci, tempo_total_ocorrencia`,
     orderBy: { column: 'data_ocorrencia', ascending: false },
     limit: 1000,
-    cacheKey: `ocorrencias-aeronauticas-${selectedBase || 'all'}-${selectedEquipes.join(',')}-${selectedMes || 'all'}`,
+    cacheKey: `ocorrencias-aeronauticas-${debouncedBase || 'all'}-${debouncedEquipes.join(',')}-${debouncedMes || 'all'}`,
     additionalFilters
   })
   
-  // Quando os filtros mudarem, recarregar os dados
+  // Quando os filtros mudarem (debounced), recarregar os dados
   useEffect(() => {
     if (isReady && (isGestorPOP || isBace || isGerenteSecao)) {
       refetch()
     }
-  }, [selectedBase, selectedEquipes, selectedMes, isReady, isGestorPOP, isBace, isGerenteSecao, refetch])
+  }, [debouncedBase, debouncedEquipes, debouncedMes, isReady, isGestorPOP, isBace, isGerenteSecao, refetch])
   
   // Limpar filtro de equipes quando a base mudar
   const previousBaseRef = useRef<string | null>(null)

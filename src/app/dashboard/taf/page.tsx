@@ -20,6 +20,7 @@ import {
 
 import { useAuth } from '@/hooks/useAuth'
 import { useDashboardData } from '@/hooks/useDashboardData'
+import { useDebounce } from '@/hooks/useDebounce'
 import { Pagination } from '@/components/ui/pagination'
 import BaseFilter from '@/components/filters/BaseFilter'
 import EquipeFilter from '@/components/filters/EquipeFilter'
@@ -82,6 +83,11 @@ export default function TafDashboard() {
   const [selectedEquipes, setSelectedEquipes] = useState<string[]>([])
   const [selectedMes, setSelectedMes] = useState<string | null>(null)
 
+  // Debounce dos filtros para evitar múltiplas requisições
+  const debouncedBase = useDebounce(selectedBase, 800)
+  const debouncedEquipes = useDebounce(selectedEquipes, 800)
+  const debouncedMes = useDebounce(selectedMes, 800)
+
   const isGestorPOP = user?.profile?.perfil === 'gestor_pop'
   const isBace = user?.profile?.perfil === 'ba_ce'
   const isGerenteSecao = user?.profile?.perfil === 'gerente_secao'
@@ -93,25 +99,25 @@ export default function TafDashboard() {
       ? (user?.profile?.secao_id ?? user?.profile?.secao?.id)
       : undefined
 
-  // Memoizar a função de filtros para evitar recriações desnecessárias
+  // Memoizar a função de filtros para evitar recriações desnecessárias - usando valores debounced
   const additionalFilters = useMemo(() => {
     return (query: any) => {
       // Para TAF, o filtro por base é aplicado no join
-      if (isGestorPOP && selectedBase) {
-        query = query.eq('taf_registros.secao_id', selectedBase)
+      if (isGestorPOP && debouncedBase) {
+        query = query.eq('taf_registros.secao_id', debouncedBase)
       }
       if ((isBace || isGerenteSecao) && user?.profile?.secao_id) {
         query = query.eq('taf_registros.secao_id', user.profile.secao_id)
       }
       
       // Filtro por equipes
-      if (selectedEquipes.length > 0) {
-        query = query.in('taf_registros.equipe_id', selectedEquipes)
+      if (debouncedEquipes.length > 0) {
+        query = query.in('taf_registros.equipe_id', debouncedEquipes)
       }
       
       // Filtro por mês de referência
-      if (selectedMes) {
-        const [ano, mes] = selectedMes.split('-')
+      if (debouncedMes) {
+        const [ano, mes] = debouncedMes.split('-')
         const anoNum = parseInt(ano, 10)
         const mesNum = parseInt(mes, 10)
         const startDate = new Date(anoNum, mesNum - 1, 1).toISOString().split('T')[0]
@@ -122,7 +128,7 @@ export default function TafDashboard() {
       
       return query
     }
-  }, [isGestorPOP, isBace, isGerenteSecao, selectedBase, selectedEquipes, selectedMes, user?.profile?.secao_id])
+  }, [isGestorPOP, isBace, isGerenteSecao, debouncedBase, debouncedEquipes, debouncedMes, user?.profile?.secao_id])
 
   // Usar hook unificado para carregamento de dados
   // O hook já aplica automaticamente o filtro por base do usuário
@@ -138,16 +144,16 @@ export default function TafDashboard() {
     selectFields: `idade, tempo_total, desempenho, data_taf, nome_equipe, nome_cidade, nome_completo, taf_registros!inner(secao_id, equipe_id)`,
     orderBy: { column: 'data_taf', ascending: false },
     limit: 1000,
-    cacheKey: `taf-${selectedBase || 'all'}-${selectedEquipes.join(',')}-${selectedMes || 'all'}-${isGestorPOP ? 'pop' : 'user'}`,
+    cacheKey: `taf-${debouncedBase || 'all'}-${debouncedEquipes.join(',')}-${debouncedMes || 'all'}-${isGestorPOP ? 'pop' : 'user'}`,
     additionalFilters
   })
 
-  // Quando os filtros mudarem, recarregar os dados
+  // Quando os filtros mudarem (debounced), recarregar os dados
   useEffect(() => {
     if (isReady && (isGestorPOP || isBace || isGerenteSecao)) {
       refetch()
     }
-  }, [selectedBase, selectedEquipes, selectedMes, isReady, isGestorPOP, isBace, isGerenteSecao, refetch])
+  }, [debouncedBase, debouncedEquipes, debouncedMes, isReady, isGestorPOP, isBace, isGerenteSecao, refetch])
   
   // Limpar filtro de equipes quando a base mudar
   const previousBaseRef = useRef<string | null>(null)

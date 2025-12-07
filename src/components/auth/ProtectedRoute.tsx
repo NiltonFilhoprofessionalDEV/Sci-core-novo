@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { usePermissions } from '@/hooks/usePermissions'
 import { PerfilUsuario } from '@/types/auth'
-import { Loader2 } from 'lucide-react'
+import { LoadingScreen } from '@/components/ui/loading-screen'
 
 interface ProtectedRouteProps {
   children: ReactNode
@@ -70,14 +70,7 @@ export function ProtectedRoute({
 
   // Mostrar loading enquanto verifica autenticação
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Verificando autenticação...</p>
-        </div>
-      </div>
-    )
+    return <LoadingScreen message="Verificando autenticação..." />
   }
 
   // Se requer autenticação e não está logado, não renderiza nada (redirecionamento em andamento)

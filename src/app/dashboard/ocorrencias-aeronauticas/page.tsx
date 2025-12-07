@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Pagination } from '@/components/ui/pagination'
+import { DashboardSkeleton } from '@/components/ui/dashboard-skeleton'
 import BaseFilter from '@/components/filters/BaseFilter'
 import EquipeFilter from '@/components/filters/EquipeFilter'
 import MesReferenciaFilter from '@/components/filters/MesReferenciaFilter'
@@ -388,10 +389,7 @@ export default function OcorrenciasAeronauticasDashboard() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center rounded-2xl border border-orange-200 bg-white p-12 text-primary">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          Carregando dados das ocorrências...
-        </div>
+        <DashboardSkeleton />
       ) : error ? (
         <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
           <AlertCircle className="h-5 w-5" />

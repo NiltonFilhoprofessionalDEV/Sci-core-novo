@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { LucideIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -21,10 +21,16 @@ interface NavBarProps {
 
 export function NavBar({ items, className, activeTab: externalActiveTab }: NavBarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState(externalActiveTab || items[0].name)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [showLeftButton, setShowLeftButton] = useState(false)
   const [showRightButton, setShowRightButton] = useState(true)
+
+  // Função para fazer prefetch ao passar o mouse
+  const handleMouseEnter = (url: string) => {
+    router.prefetch(url)
+  }
 
   // Sincroniza o activeTab com o pathname ou com o prop externo
   useEffect(() => {
@@ -126,6 +132,8 @@ export function NavBar({ items, className, activeTab: externalActiveTab }: NavBa
               key={item.name}
               href={item.url}
               onClick={() => setActiveTab(item.name)}
+              onMouseEnter={() => handleMouseEnter(item.url)}
+              prefetch={true}
               className={cn(
                 "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors whitespace-nowrap flex-shrink-0",
                 "text-orange-700 hover:text-primary",

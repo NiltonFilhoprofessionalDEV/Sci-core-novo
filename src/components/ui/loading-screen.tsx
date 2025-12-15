@@ -9,8 +9,8 @@ interface LoadingScreenProps {
 }
 
 export function LoadingScreen({ 
-  message = 'Verificando autenticação...', 
-  showProgress = true 
+  message = 'Carregando seus dados...', 
+  showProgress = false 
 }: LoadingScreenProps) {
   const [progress, setProgress] = useState(0)
 
@@ -31,11 +31,11 @@ export function LoadingScreen({
   }, [showProgress])
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-orange-50 via-white to-orange-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-linear-to-br from-orange-50 via-white to-orange-50 flex items-center justify-center z-50">
       {/* Efeito de fundo animado */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-orange-100/30 to-transparent rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-orange-100/30 to-transparent rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-linear-to-br from-orange-100/30 to-transparent rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-linear-to-tl from-orange-100/30 to-transparent rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
       {/* Conteúdo central */}
@@ -52,7 +52,7 @@ export function LoadingScreen({
           
           {/* Ícone principal */}
           <div className="relative flex items-center justify-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center shadow-xl shadow-orange-500/30 animate-bounce">
+            <div className="w-16 h-16 bg-linear-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center shadow-xl shadow-orange-500/30 animate-bounce">
               <Flame className="w-8 h-8 text-white" strokeWidth={2.5} />
             </div>
           </div>
@@ -75,7 +75,7 @@ export function LoadingScreen({
             <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner">
               {/* Barra de progresso animada */}
               <div 
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-500 rounded-full transition-all duration-300 ease-out"
+                className="absolute inset-y-0 left-0 bg-linear-to-r from-orange-500 via-orange-600 to-orange-500 rounded-full transition-all duration-300 ease-out"
                 style={{ 
                   width: `${Math.min(progress, 95)}%`,
                   backgroundSize: '200% 100%',
@@ -83,12 +83,12 @@ export function LoadingScreen({
                 }}
               >
                 {/* Efeito de brilho */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
               </div>
               
               {/* Efeito de pulsação na ponta */}
               <div 
-                className="absolute inset-y-0 w-8 bg-gradient-to-r from-transparent to-orange-400/50 blur-sm transition-all duration-300"
+                className="absolute inset-y-0 w-8 bg-linear-to-r from-transparent to-orange-400/50 blur-sm transition-all duration-300"
                 style={{ left: `${Math.min(progress, 95)}%` }}
               />
             </div>

@@ -68,27 +68,27 @@ export function GestorPOPDashboard() {
   const fetchEstatisticas = async () => {
     try {
       // Buscar total de seções
-      let secoesQuery = supabase.from('secoes').select('id', { count: 'exact' })
-      const { count: totalSecoes } = await secoesQuery
-
-      // Buscar total de equipes
-      let equipesQuery = supabase.from('equipes').select('id', { count: 'exact' })
-      if (selectedBase) {
-        equipesQuery = equipesQuery.eq('secao_id', selectedBase)
-      }
-      const { count: totalEquipes } = await equipesQuery
-
-      // Buscar indicadores
-      let indicadoresQuery = supabase.from('indicadores').select('id', { count: 'exact' })
-      const { count: totalIndicadores } = await indicadoresQuery
-
-      // Buscar preenchimentos
-      let preenchimentosQuery = supabase
-        .from('preenchimentos')
+      const { count: totalSecoes } = await supabase
+        .from('secoes')
         .select('id', { count: 'exact' })
 
+      // Buscar total de equipes
+      const { count: totalEquipes } = await supabase
+        .from('equipes')
+        .select('id', { count: 'exact' })
+        .eq(selectedBase ? 'secao_id' : 'secao_id', selectedBase || undefined as any)
+
+      // Buscar indicadores
+      const { count: totalIndicadores } = await supabase
+        .from('indicadores')
+        .select('id', { count: 'exact' })
+
+      // Buscar preenchimentos
+      let preenchimentosQuery
       if (selectedBase) {
-        preenchimentosQuery = preenchimentosQuery
+        // Consulta específica quando há base selecionada, usando join com profiles
+        preenchimentosQuery = supabase
+          .from('preenchimentos')
           .select(`
             id,
             profiles!inner (
@@ -96,6 +96,11 @@ export function GestorPOPDashboard() {
             )
           `, { count: 'exact' })
           .eq('profiles.secao_id', selectedBase)
+      } else {
+        // Consulta mais simples quando não há base selecionada
+        preenchimentosQuery = supabase
+          .from('preenchimentos')
+          .select('id', { count: 'exact' })
       }
 
       if (startDate) {
@@ -107,15 +112,18 @@ export function GestorPOPDashboard() {
 
       const { count: indicadoresPreenchidos } = await preenchimentosQuery
 
-      const percentualConclusao = totalIndicadores > 0 
-        ? Math.round((indicadoresPreenchidos / totalIndicadores) * 100)
+      const totalIndicadoresNumber = totalIndicadores ?? 0
+      const indicadoresPreenchidosNumber = indicadoresPreenchidos ?? 0
+
+      const percentualConclusao = totalIndicadoresNumber > 0 
+        ? Math.round((indicadoresPreenchidosNumber / totalIndicadoresNumber) * 100)
         : 0
 
       setEstatisticas({
-        totalSecoes: totalSecoes || 0,
-        totalEquipes: totalEquipes || 0,
-        totalIndicadores: totalIndicadores || 0,
-        indicadoresPreenchidos: indicadoresPreenchidos || 0,
+        totalSecoes: totalSecoes ?? 0,
+        totalEquipes: totalEquipes ?? 0,
+        totalIndicadores: totalIndicadoresNumber,
+        indicadoresPreenchidos: indicadoresPreenchidosNumber,
         percentualConclusao
       })
     } catch (error) {
@@ -267,7 +275,7 @@ export function GestorPOPDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Carregando dashboard...</div>
+        <div className="text-gray-500">Preparando seus indicadores...</div>
       </div>
     )
   }
@@ -397,7 +405,7 @@ export function GestorPOPDashboard() {
               {indicadoresPorTema.map((tema) => (
                 <div
                   key={tema.tema_id}
-                  className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+                  className="bg-linear-to-br from-white to-gray-50 p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">

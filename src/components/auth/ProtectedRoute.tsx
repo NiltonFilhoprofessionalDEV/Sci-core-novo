@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { usePermissions } from '@/hooks/usePermissions'
 import { PerfilUsuario } from '@/types/auth'
-import { LoadingScreen } from '@/components/ui/loading-screen'
+import { InlineLoading } from '@/components/ui/loading-screen'
 
 interface ProtectedRouteProps {
   children: ReactNode
@@ -68,9 +68,13 @@ export function ProtectedRoute({
     }
   }, [user, profile, loading, requiredProfile, requireAuth, fallbackPath, router, isGestorPOP, isGerenteSecao, isBACE])
 
-  // Mostrar loading enquanto verifica autenticação
+  // Mostrar um loading discreto enquanto verifica autenticação
   if (loading) {
-    return <LoadingScreen message="Verificando autenticação..." />
+    return (
+      <div className="flex items-center justify-center py-10">
+        <InlineLoading message="Carregando seus dados..." />
+      </div>
+    )
   }
 
   // Se requer autenticação e não está logado, não renderiza nada (redirecionamento em andamento)

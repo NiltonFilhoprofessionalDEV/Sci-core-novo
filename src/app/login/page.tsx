@@ -45,6 +45,13 @@ function LoginForm() {
 
   // Efeito para redirecionar quando o perfil estiver carregado após login
   useEffect(() => {
+    // Se o perfil está carregado e temos usuário, resetar isLoading se necessário
+    if (user && profile?.ativo && !authLoading && isLoading) {
+      console.log('✅ Login - Perfil carregado, resetando estado de loading')
+      setIsLoading(false)
+    }
+
+    // Redirecionar quando tudo estiver pronto
     if (!isLoading && user && profile?.ativo && !authLoading) {
       console.log('✅ Login - Perfil carregado, redirecionando para dashboard')
       // Pequeno delay para garantir que tudo está pronto
@@ -68,6 +75,17 @@ function LoginForm() {
         // Não redirecionar aqui - o useEffect vai fazer isso quando o perfil estiver carregado
         // Aguardar um pouco para o perfil ser carregado
         console.log('🔄 Login - Aguardando carregamento do perfil...')
+        
+        // Proteção: timeout de 15 segundos para resetar isLoading caso algo dê errado
+        setTimeout(() => {
+          setIsLoading((current) => {
+            if (current) {
+              console.warn('⏰ Login - Timeout aguardando perfil, resetando estado')
+              return false
+            }
+            return current
+          })
+        }, 15000)
       }
     } catch (err) {
       setError('Erro ao fazer login. Tente novamente.')

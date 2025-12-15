@@ -190,7 +190,7 @@ export function GestorPOPDashboard() {
         TEMAS_INDICADORES.map(async (tema) => {
           try {
             // Primeiro, tentar buscar com secao_id direto
-            let query = supabase
+            const query = supabase
               .from(tema.tabela)
               .select('id, created_at', { count: 'exact' })
               .eq('secao_id', selectedBase)

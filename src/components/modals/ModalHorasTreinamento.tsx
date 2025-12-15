@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { AlertTriangle, Clock, MapPin, Users, Calendar, Building2, X, Save, BookOpen } from 'lucide-react'
-import { useHorasTreinamento, HorasTreinamentoResultado, HorasTreinamentoRegistro } from '@/hooks/useHorasTreinamento'
+import { useHorasTreinamento, HorasTreinamentoRegistro } from '@/hooks/useHorasTreinamento'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
@@ -11,6 +11,13 @@ interface ModalHorasTreinamentoProps {
   isOpen: boolean
   onClose: () => void
   onSuccess?: () => void
+}
+
+// No UI trabalhamos com tempo em string (HH:MM:SS) e convertemos para number somente ao salvar.
+type HorasTreinamentoResultadoUI = {
+  funcionario_id: string
+  nome: string
+  hora_ptr_diaria: string
 }
 
 export function ModalHorasTreinamento({ 
@@ -81,7 +88,7 @@ export function ModalHorasTreinamento({
     data_ptr_ba: '',
     hora_ptr_diaria: '01:00:00' // Mudado para string no formato HH:MM:SS
   })
-  const [resultados, setResultados] = useState<HorasTreinamentoResultado[]>([])
+  const [resultados, setResultados] = useState<HorasTreinamentoResultadoUI[]>([])
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [showSuccess, setShowSuccess] = useState(false)
   const [modalStep, setModalStep] = useState<'selection' | 'details'>('selection')
@@ -183,7 +190,7 @@ export function ModalHorasTreinamento({
   useEffect(() => {
     if (funcionarios.length > 0) {
       console.log('👥 Inicializando resultados para', funcionarios.length, 'funcionários')
-      const novosResultados: HorasTreinamentoResultado[] = funcionarios.map(funcionario => ({
+      const novosResultados: HorasTreinamentoResultadoUI[] = funcionarios.map(funcionario => ({
         funcionario_id: funcionario.id,
         nome: funcionario.nome_completo,
         hora_ptr_diaria: formData.hora_ptr_diaria // Manter formato HH:MM:SS
@@ -224,7 +231,7 @@ export function ModalHorasTreinamento({
   }
 
   // Atualizar resultado de funcionário
-  const updateResultado = (funcionarioId: string, field: keyof HorasTreinamentoResultado, value: string | number) => {
+  const updateResultado = (funcionarioId: string, field: keyof HorasTreinamentoResultadoUI, value: string | number) => {
     setResultados(prev => prev.map(resultado => {
       if (resultado.funcionario_id === funcionarioId) {
         return { ...resultado, [field]: value }
@@ -330,7 +337,7 @@ export function ModalHorasTreinamento({
       let hasValidData = false
       resultados.forEach(resultado => {
         const prefix = resultado.funcionario_id
-        const timeValue = resultado.hora_ptr_diaria as string
+        const timeValue = resultado.hora_ptr_diaria
 
         // Verificar se tem horas válidas
         if (validateTimeFormat(timeValue) && convertTimeToDecimal(timeValue) > 0) {
@@ -363,10 +370,11 @@ export function ModalHorasTreinamento({
         data_ptr_ba: formData.data_ptr_ba,
         hora_ptr_diaria: convertTimeToDecimal(formData.hora_ptr_diaria),
         resultados: resultados
-          .filter(r => validateTimeFormat(r.hora_ptr_diaria as string) && convertTimeToDecimal(r.hora_ptr_diaria as string) > 0)
+          .filter(r => validateTimeFormat(r.hora_ptr_diaria) && convertTimeToDecimal(r.hora_ptr_diaria) > 0)
           .map(r => ({
-            ...r,
-            hora_ptr_diaria: convertTimeToDecimal(r.hora_ptr_diaria as string)
+            funcionario_id: r.funcionario_id,
+            nome: r.nome,
+            hora_ptr_diaria: convertTimeToDecimal(r.hora_ptr_diaria)
           }))
       }
 
@@ -697,7 +705,11 @@ export function ModalHorasTreinamento({
                 <button
                   type="button"
                   onClick={(e) => handleSubmit(e)}
-                  disabled={saving || resultados.every(r => r.hora_ptr_diaria <= 0) || !secaoId}
+                  disabled={
+                    saving ||
+                    resultados.every(r => convertTimeToDecimal(r.hora_ptr_diaria) <= 0) ||
+                    !secaoId
+                  }
                   className="px-8 py-3 bg-[#fa4b00] text-white rounded-lg hover:bg-[#e63946] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />

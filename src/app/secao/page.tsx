@@ -134,7 +134,12 @@ function MinhaSecaoPage() {
           .order('nome_completo')
         
         if (error) throw error
-        setFuncionarios(data || [])
+        // O embed `equipe:equipes(...)` pode vir como array dependendo do relacionamento inferido.
+        const normalized = (data || []).map((f: any) => ({
+          ...f,
+          equipe: Array.isArray(f.equipe) ? f.equipe[0] : f.equipe,
+        }))
+        setFuncionarios(normalized)
       } catch (err: any) {
         console.error('Erro ao carregar funcionários:', err)
         setError(err.message || 'Erro ao carregar funcionários')
@@ -329,7 +334,11 @@ function MinhaSecaoPage() {
           `)
           .eq('secao_id', secaoId)
           .order('nome_completo')
-        setFuncionarios(data || [])
+        const normalized = (data || []).map((f: any) => ({
+          ...f,
+          equipe: Array.isArray(f.equipe) ? f.equipe[0] : f.equipe,
+        }))
+        setFuncionarios(normalized)
       }
       
       setTimeout(() => setSuccessMessage(null), 3000)

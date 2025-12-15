@@ -25,6 +25,13 @@ const csp = [
 const nextConfig: NextConfig = {
   // Configuração mínima e estável para Next.js 15+
   serverExternalPackages: ['@supabase/supabase-js'],
+
+  // Em ambientes Windows + OneDrive, builds podem falhar por locks/readlink dentro de `.next`.
+  // Usar um distDir alternativo reduz conflitos e facilita limpeza.
+  distDir: '.next-build',
+
+  // Evita o Next inferir o workspace root errado quando há lockfiles acima do projeto
+  outputFileTracingRoot: __dirname,
   
   // Configurações essenciais para desenvolvimento
   experimental: {
@@ -59,10 +66,10 @@ const nextConfig: NextConfig = {
   
   // Configurações de build
   eslint: {
-    ignoreDuringBuilds: true
+    ignoreDuringBuilds: false
   },
   typescript: {
-    ignoreBuildErrors: true
+    ignoreBuildErrors: false
   },
   
   // Configurações de produção

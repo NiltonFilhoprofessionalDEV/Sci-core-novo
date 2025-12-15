@@ -142,14 +142,19 @@ export async function GET(req: NextRequest) {
             .gte(indicador.campoData, primeiroDiaMesISO)
           
           // Buscar último registro (para indicadores recentes)
-          const { data: ultimoRegistro } = await client
+          // Observação: como `indicador.tabela` e `indicador.campoData` são dinâmicos,
+          // o TypeScript não consegue inferir o shape do retorno do Supabase aqui.
+          type UltimoRegistro = { created_at: string | null } & Record<string, unknown>
+
+          const { data: ultimoRegistro } = (await (client
             .from(indicador.tabela)
-            .select('created_at, ' + indicador.campoData)
+            .select(`created_at, ${indicador.campoData}`)
             .eq('secao_id', equipe.secao_id)
             .eq('equipe_id', equipeId)
             .order('created_at', { ascending: false })
             .limit(1)
-            .single()
+            // `maybeSingle()` evita erro quando não há registro (retorna null)
+            .maybeSingle() as any)) as { data: UltimoRegistro | null }
           
           return {
             id: indicador.id,
@@ -157,7 +162,7 @@ export async function GET(req: NextRequest) {
             preenchido: (count || 0) > 0,
             totalRegistrosMes: count || 0,
             ultimoRegistro: ultimoRegistro?.created_at || null,
-            ultimaData: ultimoRegistro?.[indicador.campoData] || null,
+            ultimaData: (ultimoRegistro?.[indicador.campoData] as any) || null,
           }
         } catch {
           return {

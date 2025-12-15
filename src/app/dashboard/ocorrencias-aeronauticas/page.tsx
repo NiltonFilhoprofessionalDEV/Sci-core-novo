@@ -151,7 +151,7 @@ export default function OcorrenciasAeronauticasDashboard() {
     }
   }, [selectedBase])
 
-  const nomeBase = user?.profile?.secao?.nome ?? user?.profile?.secao_nome ?? 'Base não identificada'
+  const nomeBase = user?.profile?.secao?.nome ?? 'Base não identificada'
 
   const totalOcorrencias = registros.length
 
@@ -279,7 +279,7 @@ export default function OcorrenciasAeronauticasDashboard() {
       mapa.set(item.name, treemapColors[index % treemapColors.length])
     })
     return mapa
-  }, [ocorrenciasPorLocalidade])
+  }, [ocorrenciasPorLocalidade, treemapColors])
 
   // Preparar dados para o heatmap
   const dadosHeatmap = useMemo(() => {
@@ -326,7 +326,7 @@ export default function OcorrenciasAeronauticasDashboard() {
         corLegenda: coresPorLocalidade.get(item.name) || treemapColors[index % treemapColors.length]
       }
     })
-  }, [ocorrenciasPorLocalidade, coresPorLocalidade])
+  }, [ocorrenciasPorLocalidade, coresPorLocalidade, treemapColors])
 
   const tabelaRegistros = useMemo(() => {
     return registros.map((registro) => ({

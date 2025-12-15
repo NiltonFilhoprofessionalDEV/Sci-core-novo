@@ -258,7 +258,7 @@ export function useHorasTreinamento(secaoId?: string) {
       // Garantir que o estado saving seja sempre resetado
       setSaving(false);
     }
-  }, []);
+  }, [validarHoras, verificarDuplicatas]);
 
   return {
     // Estados otimizados

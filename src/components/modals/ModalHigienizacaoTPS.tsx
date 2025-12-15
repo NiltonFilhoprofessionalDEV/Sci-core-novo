@@ -23,7 +23,6 @@ export function ModalHigienizacaoTPS({
   const secaoId = user?.profile?.secao?.id
 
   const {
-    secoes,
     equipes,
     loading,
     saving,
@@ -56,7 +55,6 @@ export function ModalHigienizacaoTPS({
     isOpen,
     loading,
     saving,
-    secoesCount: 0,
     equipesCount: equipes.length,
     formData
   })

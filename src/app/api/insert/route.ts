@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const payloadSchema = z.object({
   table: z.string().min(1),
-  records: z.array(z.record(z.any())).min(1).max(100),
+  records: z.array(z.record(z.string(), z.unknown())).min(1).max(100),
 })
 
 // Tabelas permitidas para inserção genérica

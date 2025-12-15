@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { X, Plus, Save, AlertCircle, Clock, MapPin, Users, Calendar, Building2, Timer, Trash2 } from 'lucide-react'
-import { useTempoResposta, type ViaturaTempo, type Equipe, type Funcionario, type TempoRespostaData } from '@/hooks/useTempoResposta'
+import { useTempoResposta, type ViaturaTempo, type Funcionario, type TempoRespostaData } from '@/hooks/useTempoResposta'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 
@@ -233,8 +233,19 @@ export default function ModalTempoResposta({ isOpen, onClose, onSuccess }: Modal
         return
       }
 
+      const secaoUsuario = getSecaoByUser()
+      const nomeCidade =
+        equipeSelecionada.nome_cidade ??
+        (secaoUsuario?.estado ? `${secaoUsuario.cidade}/${secaoUsuario.estado}` : secaoUsuario?.cidade) ??
+        ''
+
+      if (!nomeCidade) {
+        toast.error('Não foi possível identificar a cidade/base para salvar o registro')
+        return
+      }
+
       const dadosParaSalvar: TempoRespostaData[] = viaturas.map(viatura => ({
-        nome_cidade: equipeSelecionada.nome_cidade,
+        nome_cidade: nomeCidade,
         equipe: equipeSelecionada.nome,
         data_tempo_resposta: formData.data_tempo_resposta,
         nome_completo: viatura.nome_completo,

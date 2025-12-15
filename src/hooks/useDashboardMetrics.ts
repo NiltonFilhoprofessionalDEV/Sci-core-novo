@@ -351,7 +351,7 @@ export function useDashboardMetrics(filters: DashboardFilters) {
         const tafResultadosData = (tafResultados.data ?? []) as Array<{
           desempenho: number | null
           data_taf: string | null
-          taf_registros: { data_teste: string | null }
+          taf_registros?: { data_teste: string | null }[]
         }>
 
         const tafSeriesMonths = buildMonthSequence(Math.min(meses, 6))
@@ -363,7 +363,7 @@ export function useDashboardMetrics(filters: DashboardFilters) {
         let semAvaliacao = 0
 
         tafResultadosData.forEach((item) => {
-          const dataBase = item.data_taf || item.taf_registros?.data_teste
+          const dataBase = item.data_taf || item.taf_registros?.[0]?.data_teste
           const key = toMonthKey(dataBase)
           if (item.desempenho === null || item.desempenho === undefined) {
             semAvaliacao += 1

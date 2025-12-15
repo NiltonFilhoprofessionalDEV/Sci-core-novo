@@ -73,6 +73,12 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
   const handleSave = async () => {
     try {
       setSaving(true)
+
+      if (!secaoId) {
+        toast.error('Usuário deve ter uma base associada')
+        return
+      }
+
       const sucesso = await salvarTemposEPR(secaoId)
       
       if (sucesso) {
@@ -107,7 +113,7 @@ export default function ModalTempoEPR({ isOpen, onClose, onSuccess }: ModalTempo
       setBaseSelecionada(secaoId)
       buscarEquipesPorBase(secaoId)
     }
-  }, [isOpen, secaoId, baseSelecionada, setBaseSelecionada])
+  }, [isOpen, secaoId, baseSelecionada, setBaseSelecionada, buscarEquipesPorBase])
 
   // Obter data máxima (hoje)
   const getMaxDate = () => {

@@ -171,7 +171,10 @@ export function ModalControleTrocas({
       }
 
       const dadosParaSalvar = {
-        nome_cidade: baseSelecionada.nome_cidade || baseSelecionada.cidade || baseSelecionada.nome,
+        // `Secao` (do `SecoesContext`) não possui `nome_cidade`; padronizamos aqui para o texto esperado pelo backend.
+        nome_cidade: baseSelecionada.estado
+          ? `${baseSelecionada.cidade}/${baseSelecionada.estado}`
+          : baseSelecionada.cidade || baseSelecionada.nome,
         nome_usuario: user.email || 'Usuário',
         equipe: equipeSelecionada.nome,
         data_referencia: formData.data,

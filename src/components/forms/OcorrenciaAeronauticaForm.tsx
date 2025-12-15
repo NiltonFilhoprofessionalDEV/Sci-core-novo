@@ -41,7 +41,9 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
     hora_acionamento: '',
     tempo_chegada_primeiro_cci: '',
     tempo_chegada_ultimo_cci: '',
-    hora_termino: ''
+    hora_termino: '',
+    equipe: '',
+    cidade_aeroporto: ''
   })
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -212,7 +214,9 @@ export const OcorrenciaAeronauticaForm: React.FC<OcorrenciaAeronauticaFormProps>
       hora_acionamento: '',
       tempo_chegada_primeiro_cci: '',
       tempo_chegada_ultimo_cci: '',
-      hora_termino: ''
+      hora_termino: '',
+      equipe: '',
+      cidade_aeroporto: ''
     })
     setFieldErrors({})
     setTempoTotal('00:00:00')

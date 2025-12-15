@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Equipe } from '@/types/auth'
 import { ChevronDown, Users, X } from 'lucide-react'
@@ -8,7 +8,7 @@ import { ChevronDown, Users, X } from 'lucide-react'
 interface EquipeFilterProps {
   selectedEquipes: string[]
   onEquipeChange: (equipes: string[]) => void
-  secaoId?: string
+  secaoId?: string | null
   showAllOption?: boolean
 }
 
@@ -22,17 +22,13 @@ export default function EquipeFilter({
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchEquipes()
-  }, [secaoId])
-
-  const fetchEquipes = async () => {
+  const fetchEquipes = useCallback(async () => {
     try {
       let query = supabase
         .from('equipes')
         .select(`
           *,
-          secoes (
+          secao:secoes (
             id,
             nome
           )
@@ -52,7 +48,11 @@ export default function EquipeFilter({
     } finally {
       setLoading(false)
     }
-  }
+  }, [secaoId])
+
+  useEffect(() => {
+    fetchEquipes()
+  }, [fetchEquipes])
 
   const handleEquipeToggle = (equipeId: string) => {
     if (selectedEquipes.includes(equipeId)) {
@@ -157,8 +157,8 @@ export default function EquipeFilter({
                 />
                 <div className="flex-1">
                   <div className="text-sm font-medium text-gray-900">{equipe.nome}</div>
-                  {equipe.secoes && (
-                    <div className="text-xs text-gray-500">Seção: {equipe.secoes.nome}</div>
+                  {equipe.secao && (
+                    <div className="text-xs text-gray-500">Seção: {equipe.secao.nome}</div>
                   )}
                 </div>
               </label>

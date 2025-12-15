@@ -18,6 +18,16 @@ export interface VerificacaoTPsRegistro {
   tp_total: number;
 }
 
+// Dados do formulário usados pelo modal e pela rotina de salvamento
+export interface VerificacaoTPsFormData {
+  secao_id: string;
+  data: string;
+  equipe: string;
+  tp_conforme: number;
+  tp_verificado: number;
+  tp_total: number;
+}
+
 export function useVerificacaoTPs() {
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [loading, setLoading] = useState(false);

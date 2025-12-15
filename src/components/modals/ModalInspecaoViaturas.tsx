@@ -19,6 +19,8 @@ interface FormData {
   observacoes: string;
 }
 
+type FormErrors = Partial<Record<keyof FormData, string>>;
+
 const ModalInspecaoViaturas: React.FC<ModalInspecaoViaturasProps> = ({
   isOpen,
   onClose,
@@ -28,7 +30,6 @@ const ModalInspecaoViaturas: React.FC<ModalInspecaoViaturasProps> = ({
   const secaoId = user?.profile?.secao?.id
 
   const {
-    bases,
     equipes,
     loading,
     loadingEquipes,
@@ -45,7 +46,7 @@ const ModalInspecaoViaturas: React.FC<ModalInspecaoViaturasProps> = ({
     observacoes: '',
   });
 
-  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{
     type: 'success' | 'error';
@@ -100,7 +101,7 @@ const ModalInspecaoViaturas: React.FC<ModalInspecaoViaturasProps> = ({
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<FormData> = {};
+    const newErrors: FormErrors = {};
 
     if (!formData.base_id && !secaoId) {
       newErrors.base_id = 'Usuário deve ter uma base associada';

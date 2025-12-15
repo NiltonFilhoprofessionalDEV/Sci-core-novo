@@ -92,7 +92,7 @@ export function useDashboardLoader<T>({
 
     // Se não houver cache ou for refresh forçado, carregar dados
     await fetchFreshData(abortController, true)
-  }, [cacheKey, fetchFunction, filters, getCachedData, setCachedData, cleanup])
+  }, [cacheKey, fetchFunction, filters, getCachedData, setCachedData, cleanup, fetchFreshData, enabled, user])
 
   // Função para buscar dados frescos
   const fetchFreshData = async (controller: AbortController, showLoading: boolean) => {

@@ -10,10 +10,13 @@ export async function executeSupabaseQuery<T>(
   timeout = 20000
 ): Promise<T[]> {
   // Criar promise com timeout
-  const queryPromise = queryBuilder.then(({ data, error }) => {
+  const runQuery = async () => {
+    const { data, error } = await (queryBuilder as unknown as Promise<{ data: any; error: any }>)
     if (error) throw error
     return (data ?? []) as T[]
-  })
+  }
+
+  const queryPromise = runQuery()
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => {
@@ -27,10 +30,7 @@ export async function executeSupabaseQuery<T>(
     // Se for timeout, tentar novamente uma vez
     if (error instanceof Error && error.message.includes('timeout')) {
       console.log('⏱️ Timeout na query, tentando novamente...')
-      return await queryBuilder.then(({ data, error }) => {
-        if (error) throw error
-        return (data ?? []) as T[]
-      })
+      return await runQuery()
     }
     throw error
   }

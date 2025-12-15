@@ -293,7 +293,7 @@ export const useControleUniformesRecebidos = () => {
           usuario_id: user.id,
           data_referencia: dados.data,
           nome_cidade: nomeCidade,
-          nome_usuario: user.user_metadata?.name || user.email || 'Usuário',
+          nome_usuario: user.profile?.nome_completo || user.email || 'Usuário',
           equipe: dados.equipe,
           data: dados.data,
           epi_entregue: dadosFuncionario.epi_entregue,
@@ -467,7 +467,7 @@ export const useControleUniformesRecebidos = () => {
     if (user) {
       buscarRegistros();
     }
-  }, [user]);
+  }, [user, buscarRegistros]);
 
   return {
     // Estados

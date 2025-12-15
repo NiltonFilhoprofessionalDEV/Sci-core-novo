@@ -8,11 +8,13 @@ import { useAuth } from '@/hooks/useAuth';
 interface ModalControleUniformesRecebidosProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRecebidosProps> = ({
   isOpen,
   onClose,
+  onSuccess,
 }) => {
   const {
     loading,
@@ -166,6 +168,7 @@ export const ModalControleUniformesRecebidos: React.FC<ModalControleUniformesRec
     
     if (sucesso) {
       setShowSuccess(true);
+      onSuccess?.();
       setTimeout(() => {
         onClose();
       }, 2000);

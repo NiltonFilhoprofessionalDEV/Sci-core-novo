@@ -64,10 +64,10 @@ export default function ControleAgentesExtintoresDashboard() {
   const isGerenteSecao = user?.profile?.perfil === 'gerente_secao'
   
   // Determinar secaoId para filtro de equipes
-  const secaoIdParaEquipes = isGestorPOP 
-    ? selectedBase 
-    : (isBace || isGerenteSecao) 
-      ? (user?.profile?.secao_id ?? user?.profile?.secao?.id)
+  const secaoIdParaEquipes: string | undefined = isGestorPOP
+    ? (selectedBase ?? undefined)
+    : (isBace || isGerenteSecao)
+      ? (user?.profile?.secao_id ?? user?.profile?.secao?.id ?? undefined)
       : undefined
   
   // Memoizar a função de filtros

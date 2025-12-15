@@ -107,11 +107,11 @@ export async function checkConnection(): Promise<boolean> {
 
 // Função helper para adicionar timeout a queries do Supabase
 export function withQueryTimeout<T>(
-  queryPromise: Promise<{ data: T | null; error: any }>,
+  queryPromise: PromiseLike<{ data: T | null; error: any }>,
   timeoutMs: number = 10000
 ): Promise<{ data: T | null; error: any }> {
   return Promise.race([
-    queryPromise,
+    Promise.resolve(queryPromise),
     new Promise<{ data: null; error: { message: string } }>((resolve) => {
       setTimeout(() => {
         resolve({

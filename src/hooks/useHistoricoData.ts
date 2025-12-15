@@ -131,37 +131,34 @@ const obterPerfilUsuario = async (userId: string) => {
   }
 
   try {
-    // Adicionar timeout de 8 segundos
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 8000)
-    
-    try {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('secao_id, equipe_id, perfil, ativo')
-        .eq('id', userId)
-        .single()
-        .abortSignal(controller.signal)
+    // Timeout de 8 segundos
+    const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+      setTimeout(() => resolve({ data: null, error: { message: 'Timeout' } }), 8000)
+    )
 
-      clearTimeout(timeoutId)
+    const queryPromise = supabase
+      .from('profiles')
+      .select('secao_id, equipe_id, perfil, ativo')
+      .eq('id', userId)
+      .single() as unknown as Promise<{ data: any; error: any }>
 
-      if (profileError) {
-        throw new Error(`Erro ao buscar perfil: ${profileError.message}`)
-      }
+    const result = await Promise.race([queryPromise, timeoutPromise])
 
-      if (!profile || !profile.ativo) {
-        throw new Error('Perfil inativo ou não encontrado')
-      }
-
-      perfilCache = { data: profile, timestamp: Date.now() }
-      return profile
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId)
-      if (fetchError.name === 'AbortError' || fetchError.message?.includes('timeout')) {
+    if (result.error) {
+      if (result.error.message === 'Timeout') {
         throw new Error('Timeout ao buscar perfil do usuário')
       }
-      throw fetchError
+      throw new Error(`Erro ao buscar perfil: ${result.error.message}`)
     }
+
+    const profile = result.data
+
+    if (!profile || !profile.ativo) {
+      throw new Error('Perfil inativo ou não encontrado')
+    }
+
+    perfilCache = { data: profile, timestamp: Date.now() }
+    return profile
   } catch (error) {
     console.error('Erro ao obter perfil:', error)
     throw error
@@ -380,44 +377,25 @@ export function useHistoricoData({
         // Obter perfil do usuário
         const profile = await obterPerfilUsuario(user.id)
 
-        // Construir e executar query com timeout
+        // Construir e executar query com timeout (sem abortSignal)
         const query = construirQuery(tema.tabela, profile, filtros, paginaAtual, registrosPorPagina)
-        
-        // Timeout de 8 segundos (consistente com dashboards)
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 8000)
-        
-        const timeoutPromise = new Promise<{ data: null, error: { message: string }, count: null }>((resolve) => {
-          setTimeout(() => {
-            resolve({ 
-              data: null, 
-              error: { message: 'Timeout: A requisição demorou mais de 8 segundos' }, 
-              count: null 
-            })
-          }, 8000)
-        })
-        
-        // Race entre query com abort signal e timeout
-        const queryPromise = query
-          .abortSignal(controller.signal)
-          .then(result => {
-            clearTimeout(timeoutId)
-            return { result, isTimeout: false }
-          })
-          .catch((err: any) => {
-            clearTimeout(timeoutId)
-            if (err.name === 'AbortError') {
-              return { result: { data: null, error: { message: 'Timeout: A requisição foi cancelada' }, count: null }, isTimeout: true }
-            }
-            throw err
-          })
-        
-        const raceResult = await Promise.race([queryPromise, timeoutPromise.then(r => ({ result: r, isTimeout: true }))]) as any
-        
+
+        const timeoutPromise = new Promise<{ data: null; error: { message: string }; count: null }>((resolve) =>
+          setTimeout(() => resolve({
+            data: null,
+            error: { message: 'Timeout: A requisição demorou mais de 8 segundos' },
+            count: null,
+          }), 8000)
+        )
+
+        const queryPromise = query.then((result) => ({ result, isTimeout: false }))
+
+        const raceResult = await Promise.race([queryPromise, timeoutPromise.then((r) => ({ result: r, isTimeout: true }))]) as any
+
         if (raceResult.isTimeout) {
           throw new Error('Timeout: A requisição demorou muito para responder. Tente novamente.')
         }
-        
+
         const { data, error: queryError, count } = raceResult.result
 
         if (queryError) {

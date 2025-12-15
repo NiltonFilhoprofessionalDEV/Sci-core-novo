@@ -101,7 +101,7 @@ export function usePermissions() {
   const getUserDisplayInfo = () => {
     if (!profile) return null
 
-    let displayText = profile.nome_completo
+    const displayText = profile.nome_completo
     let roleText = ''
     let contextText = ''
 

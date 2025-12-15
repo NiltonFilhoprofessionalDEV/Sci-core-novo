@@ -4,6 +4,12 @@ import { useIndicatorQuery } from '@/hooks/queries/useIndicatorQuery'
 import { VirtualTable } from '@/components/ui/VirtualTable'
 import { useState } from 'react'
 
+type OcorrenciaAeronauticaRow = {
+  data_ocorrencia: string
+  tipo?: string | null
+  descricao?: string | null
+}
+
 interface DashboardContentProps {
   initialData?: any
   secaoId?: string
@@ -25,7 +31,7 @@ export function DashboardContent({ initialData, secaoId, equipeId }: DashboardCo
   })
 
   // Usar dados iniciais se disponíveis e não houver dados do React Query ainda
-  const displayData = data?.data || initialData?.data || []
+  const displayData = (data?.data ?? initialData?.data ?? []) as OcorrenciaAeronauticaRow[]
 
   if (error) {
     return (
@@ -42,7 +48,7 @@ export function DashboardContent({ initialData, secaoId, equipeId }: DashboardCo
         {isLoading && <span className="text-sm text-gray-500">Carregando...</span>}
       </div>
 
-      <VirtualTable
+      <VirtualTable<OcorrenciaAeronauticaRow>
         data={displayData}
         columns={[
           {

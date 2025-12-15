@@ -130,7 +130,7 @@ function LoginForm() {
 
               {error && (
                 <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg mb-6 flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
               )}
@@ -147,7 +147,7 @@ function LoginForm() {
                       {...register('email')}
                       type="email"
                       placeholder="seu@email.com"
-                      className="w-full pl-12 pr-4 py-3 bg-white border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-300 !text-black placeholder:text-[#7a5b3e]/60"
+                      className="w-full pl-12 pr-4 py-3 bg-white border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-300 text-black! placeholder:text-[#7a5b3e]/60"
                       style={{ color: '#000000' }}
                     />
                   </div>
@@ -167,7 +167,7 @@ function LoginForm() {
                       {...register('password')}
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      className="w-full pl-12 pr-12 py-3 bg-white border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-300 !text-black placeholder:text-[#7a5b3e]/60"
+                      className="w-full pl-12 pr-12 py-3 bg-white border border-[#cdbdae]/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-300 text-black! placeholder:text-[#7a5b3e]/60"
                       style={{ color: '#000000' }}
                     />
                     <button
@@ -204,10 +204,10 @@ function LoginForm() {
                 {/* Botão de Login */}
                 <button
                   type="submit"
-                  disabled={isLoading || (authLoading && user)}
+                  disabled={isLoading || (authLoading && !!user)}
                   className="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? 'Entrando...' : (authLoading && user ? 'Carregando perfil...' : 'Entrar')}
+                  {isLoading ? 'Entrando...' : (authLoading && !!user ? 'Carregando perfil...' : 'Entrar')}
                 </button>
               </form>
 

@@ -8,11 +8,8 @@ const PROFILE_TIMEOUT_MS = 12_000
 const SESSION_TIMEOUT_MS = 10_000
 
 async function fetchUserProfileWithTimeout(userId: string): Promise<UserProfile | null> {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), PROFILE_TIMEOUT_MS)
-
   try {
-    const { data, error } = await supabase
+    const queryPromise = supabase
       .from('profiles')
       .select(
         `
@@ -24,9 +21,19 @@ async function fetchUserProfileWithTimeout(userId: string): Promise<UserProfile 
       .eq('id', userId)
       .eq('ativo', true)
       .single()
-      .abortSignal(controller.signal)
 
-    clearTimeout(timeoutId)
+    const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+      setTimeout(() => resolve({ data: null, error: { message: 'Timeout' } }), PROFILE_TIMEOUT_MS)
+    })
+
+    const { data, error } = await Promise.race([
+      queryPromise as unknown as Promise<{ data: unknown; error: any }>,
+      timeoutPromise,
+    ])
+
+    if (error?.message === 'Timeout') {
+      return null
+    }
 
     if (error) {
       if (error.code === 'PGRST116' || error.message?.includes('No rows')) {
@@ -50,10 +57,6 @@ async function fetchUserProfileWithTimeout(userId: string): Promise<UserProfile 
 
     return data as UserProfile
   } catch (err: any) {
-    clearTimeout(timeoutId)
-    if (err?.name === 'AbortError') {
-      return null
-    }
     return null
   }
 }
@@ -78,7 +81,7 @@ export function useAuth() {
     setUser({
       id: authUser.id,
       email: authUser.email || '',
-      profile: userProfile,
+      profile: userProfile ?? undefined,
     })
 
     setProfile(userProfile)
@@ -88,8 +91,7 @@ export function useAuth() {
         .from('profiles')
         .update({ last_login: new Date().toISOString() })
         .eq('id', authUser.id)
-        .then(() => undefined)
-        .catch(() => undefined)
+        .then(() => undefined, () => undefined)
     }
   }, [])
 

@@ -6,7 +6,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { supabase } from '@/lib/supabase'
 import { usePermissions } from '@/hooks/usePermissions'
 import { 
   Target, 
@@ -46,7 +46,6 @@ interface FiltrosIndicadores {
 }
 
 export function IndicadoresList() {
-  const supabase = useSupabaseClient()
   const { canFillIndicators, canManageIndicators } = usePermissions()
   const [indicadores, setIndicadores] = useState<Indicador[]>([])
   const [indicadorSelecionado, setIndicadorSelecionado] = useState<Indicador | null>(null)

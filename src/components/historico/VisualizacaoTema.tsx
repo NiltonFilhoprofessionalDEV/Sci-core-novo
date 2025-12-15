@@ -831,7 +831,7 @@ export function VisualizacaoTema({
         <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum registro encontrado</h3>
         <p className="text-gray-600">
-          Não há dados para o tema "{tema.nome}" com os filtros aplicados.
+          Não há dados para o tema &quot;{tema.nome}&quot; com os filtros aplicados.
         </p>
       </div>
     )
@@ -997,8 +997,8 @@ export function VisualizacaoTema({
 
             <div className="flex items-center justify-center space-x-1 sm:space-x-2">
               <button
-                onClick={() => onPaginaChange(paginaAtual - 1)}
-                disabled={paginaAtual === 1}
+                onClick={() => onPaginaChange?.(paginaAtual - 1)}
+                disabled={paginaAtual === 1 || !onPaginaChange}
                 className="flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: paginaAtual === 1 ? '#f1f5f9' : '#e5e7eb',
@@ -1029,7 +1029,8 @@ export function VisualizacaoTema({
                   return (
                     <button
                       key={pagina}
-                      onClick={() => onPaginaChange(pagina)}
+                      onClick={() => onPaginaChange?.(pagina)}
+                      disabled={!onPaginaChange}
                       className="px-2 sm:px-3 py-2 text-xs sm:text-sm rounded-lg border font-semibold transition-colors shadow-sm"
                       style={{
                         backgroundColor: isAtual ? '#f97316' : '#e5e7eb',
@@ -1045,8 +1046,8 @@ export function VisualizacaoTema({
               </div>
 
               <button
-                onClick={() => onPaginaChange(paginaAtual + 1)}
-                disabled={paginaAtual === totalPaginas}
+                onClick={() => onPaginaChange?.(paginaAtual + 1)}
+                disabled={paginaAtual === totalPaginas || !onPaginaChange}
                 className="flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: paginaAtual === totalPaginas ? '#f1f5f9' : '#e5e7eb',
@@ -1085,15 +1086,16 @@ export function VisualizacaoTema({
                 {Object.entries(registroSelecionado).map(([chave, valor]) => {
                   if (chave === 'id' || chave.endsWith('_id') || valor === null || valor === undefined) return null
 
-                  if (chave === 'taf_registros' && typeof valor === 'object') {
+                  if (chave === 'taf_registros' && valor && typeof valor === 'object' && !Array.isArray(valor)) {
+                    const taf = valor as { data_teste?: string | null }
                     return (
                       <div key={chave} className="space-y-1">
                         <label className="text-xs sm:text-sm font-medium text-gray-700">
                           Informações do Registro TAF
                         </label>
                         <div className="text-xs sm:text-sm text-gray-900 bg-gray-50 p-2 sm:p-3 rounded-lg space-y-1">
-                          {valor.data_teste && (
-                            <div><strong>Data do Teste:</strong> {formatarData(valor.data_teste)}</div>
+                          {taf.data_teste && (
+                            <div><strong>Data do Teste:</strong> {formatarData(taf.data_teste)}</div>
                           )}
                         </div>
                       </div>

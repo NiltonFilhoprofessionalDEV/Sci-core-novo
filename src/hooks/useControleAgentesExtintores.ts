@@ -18,7 +18,7 @@ export interface ControleAgentesExtintoresData {
   quantidade_exigida_po_quimico: number;
   quantidade_exigida_lge: number;
   quantidade_exigida_nitrogenio: number;
-  observacoes?: string;
+  observacoes?: string | null;
 }
 
 export interface ControleFormData {

@@ -15,13 +15,13 @@ export async function serverFetch(url: string, options: RequestInit = {}) {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
   const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`
   
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...options.headers,
+  const headers = new Headers()
+  headers.set('Content-Type', 'application/json')
+  if (options.headers) {
+    new Headers(options.headers).forEach((value, key) => headers.set(key, value))
   }
-  
   if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`
+    headers.set('Authorization', `Bearer ${accessToken}`)
   }
   
   const response = await fetch(fullUrl, {

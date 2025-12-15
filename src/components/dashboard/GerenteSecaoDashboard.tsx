@@ -78,7 +78,7 @@ export function GerenteSecaoDashboard() {
             secao_id,
             ativo
           `)
-          .eq('secao_id', secaoAtual.codigo)
+          .eq('secao_id', secaoAtual)
           .eq('ativo', true)
 
         if (equipesError) throw equipesError
@@ -191,10 +191,10 @@ export function GerenteSecaoDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[#1f1f1f]">
-            Dashboard - {secaoAtual?.nome}
+            Dashboard - {userInfo?.contexto ?? 'Seção'}
           </h2>
           <p className="text-[#7a5b3e]/70">
-            Gerenciamento da sua seção • {secaoAtual?.cidade}
+            Gerenciamento da sua seção
           </p>
         </div>
         

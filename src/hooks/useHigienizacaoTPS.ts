@@ -16,6 +16,15 @@ export interface HigienizacaoTPSRegistro {
   tps_higienizados: number;
 }
 
+// Dados do formulário usados pelo modal e pela rotina de salvamento
+export interface HigienizacaoTPSFormData {
+  secao_id: string;
+  data: string;
+  equipe: string;
+  tp_higienizado: number;
+  tp_total: number;
+}
+
 export function useHigienizacaoTPS() {
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [loading, setLoading] = useState(false);

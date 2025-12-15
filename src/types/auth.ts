@@ -3,7 +3,7 @@
 // Sistema de Indicadores Bombeiro MedMais
 // =====================================================
 
-export type PerfilUsuario = 'gestor_pop' | 'gerente_secao' | 'ba_ce'
+export type PerfilUsuario = 'gestor_pop' | 'gerente_secao' | 'ba_ce' | 'ba_op'
 
 export interface Secao {
   id: string
@@ -11,6 +11,9 @@ export interface Secao {
   codigo: string
   cidade: string
   estado: string
+  // Alguns selects/UI do frontend usam um campo "localizacao" já formatado (ex.: "Cidade/UF").
+  // Mantemos como opcional para compatibilidade.
+  localizacao?: string
   ativa: boolean
   created_at: string
   updated_at: string
@@ -166,6 +169,15 @@ export const getPermissoes = (profile: UserProfile | null): PermissaoUsuario => 
         secoesVisiveis: profile.secao_id ? [profile.secao_id] : [],
         equipesVisiveis: profile.equipe_id ? [profile.equipe_id] : []
       }
+    case 'ba_op':
+      return {
+        podeVerTodasSecoes: false,
+        podeVerSuaSecao: true,
+        podePreencherIndicadores: true,
+        podeGerenciarIndicadores: false,
+        secoesVisiveis: profile.secao_id ? [profile.secao_id] : [],
+        equipesVisiveis: profile.equipe_id ? [profile.equipe_id] : []
+      }
     
     default:
       return {
@@ -187,6 +199,8 @@ export const getPerfilDisplayName = (perfil: PerfilUsuario): string => {
       return 'Gerente de Seção'
     case 'ba_ce':
       return 'Bombeiro de Aeródromo - Chefe de Equipe'
+    case 'ba_op':
+      return 'Bombeiro de Aeródromo - Operador'
     default:
       return 'Usuário'
   }

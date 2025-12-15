@@ -14,10 +14,13 @@ interface IndicadorEvento {
   id: string
   nome: string
   descricao: string
-  tipo_dados: 'numero' | 'texto' | 'tempo' | 'data' | 'datetime'
+  tipo_dados: 'numero' | 'texto' | 'tempo' | 'data' | 'data_hora'
+  frequencia: 'evento'
   obrigatorio: boolean
+  unidade_medida?: string
   ativo: boolean
   created_at: string
+  updated_at?: string
   preenchimentos?: any[]
 }
 
@@ -29,7 +32,7 @@ export default function IndicadoresEventoPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [selectedIndicador, setSelectedIndicador] = useState<IndicadorEvento | null>(null)
-  const [statusFilter, setStatusFilter] = useState<'todos' | 'preenchidos' | 'pendentes'>('todos')
+  const [statusFilter, setStatusFilter] = useState<'todos' | 'preenchido' | 'pendente'>('todos')
 
   useEffect(() => {
     fetchIndicadores()
@@ -73,6 +76,23 @@ export default function IndicadoresEventoPage() {
     setShowForm(false)
     setSelectedIndicador(null)
     fetchIndicadores() // Recarregar dados após preenchimento
+  }
+
+  const handleSalvarIndicador = async (dados: any) => {
+    // Persistir preenchimento do indicador
+    const secaoId = user?.profile?.secao_id ?? user?.profile?.secao?.id ?? null
+    const equipeId = user?.profile?.equipe_id ?? user?.profile?.equipe?.id ?? null
+
+    const payload = {
+      ...dados,
+      secao_id: secaoId,
+      equipe_id: equipeId,
+    }
+
+    const { error } = await supabase.from('preenchimentos').insert(payload)
+    if (error) throw error
+
+    handleFormClose()
   }
 
   const getStatusIndicador = (indicador: IndicadorEvento) => {
@@ -173,12 +193,12 @@ export default function IndicadoresEventoPage() {
                 <Filter className="w-4 h-4 text-gray-600" />
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  onChange={(e) => setStatusFilter(e.target.value as 'todos' | 'preenchido' | 'pendente')}
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="todos">Todos os Status</option>
-                  <option value="pendentes">Aguardando Evento</option>
-                  <option value="preenchidos">Preenchidos Hoje</option>
+                  <option value="pendente">Aguardando Evento</option>
+                  <option value="preenchido">Preenchidos Hoje</option>
                 </select>
               </div>
             </div>
@@ -239,7 +259,7 @@ export default function IndicadoresEventoPage() {
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">Indicadores Disponíveis</h2>
-              <p className="text-sm text-gray-600">Clique em "Registrar Evento" quando ocorrer a situação</p>
+              <p className="text-sm text-gray-600">Clique em &quot;Registrar Evento&quot; quando ocorrer a situação</p>
             </div>
 
             <div className="divide-y divide-gray-200">
@@ -334,7 +354,8 @@ export default function IndicadoresEventoPage() {
               <div className="p-6">
                 <IndicadorForm
                   indicador={selectedIndicador}
-                  onClose={handleFormClose}
+                  onSave={handleSalvarIndicador}
+                  onCancel={handleFormClose}
                 />
               </div>
             </div>

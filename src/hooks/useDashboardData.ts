@@ -159,7 +159,7 @@ export function useDashboardData<T>({
 
     // Se não houver cache ou for refresh forçado, carregar dados
     await fetchFreshData(abortController, showLoading)
-  }, [checkUserReady, getCachedData, cleanup, finalCacheKey, additionalFilters])
+  }, [checkUserReady, getCachedData, cleanup, finalCacheKey, additionalFilters, user])
 
   // Função para buscar dados frescos do servidor
   const fetchFreshData = async (controller: AbortController, showLoading: boolean) => {

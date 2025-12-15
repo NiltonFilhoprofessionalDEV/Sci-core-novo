@@ -378,7 +378,8 @@ export async function GET(req: NextRequest) {
     const tafResultadosData = (tafResultados.data ?? []) as Array<{
       desempenho: number | null
       data_taf: string | null
-      taf_registros: { data_teste: string | null }
+      // O embed `taf_registros!inner(...)` pode vir como array no PostgREST
+      taf_registros: Array<{ data_teste: string | null }>
     }>
 
     const tafSeriesMonths = buildMonthSequence(Math.min(meses, 6))
@@ -390,7 +391,7 @@ export async function GET(req: NextRequest) {
     let semAvaliacao = 0
 
     tafResultadosData.forEach((item) => {
-      const dataBase = item.data_taf || item.taf_registros?.data_teste
+      const dataBase = item.data_taf || item.taf_registros?.[0]?.data_teste
       const key = toMonthKey(dataBase)
       if (item.desempenho === null || item.desempenho === undefined) {
         semAvaliacao += 1

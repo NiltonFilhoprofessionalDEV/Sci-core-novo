@@ -18,7 +18,6 @@ export function PTRBAModal({
   onSuccess 
 }: PTRBAModalProps) {
   const {
-    secoes,
     equipes,
     funcionarios,
     loading,
@@ -62,7 +61,6 @@ export function PTRBAModal({
     loading,
     saving,
     modalStep,
-    secoesCount: 0,
     equipesCount: equipes.length,
     funcionariosCount: funcionarios.length,
     formData,

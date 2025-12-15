@@ -19,7 +19,6 @@ export function ModalVerificacaoTPs({
   onSuccess 
 }: ModalVerificacaoTPsProps) {
   const {
-    secoes,
     equipes,
     loading,
     saving,
@@ -58,7 +57,6 @@ export function ModalVerificacaoTPs({
     isOpen,
     loading,
     saving,
-    secoesCount: 0,
     equipesCount: equipes.length,
     formData
   })

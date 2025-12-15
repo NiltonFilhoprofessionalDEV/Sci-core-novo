@@ -98,10 +98,10 @@ export default function AtividadesAcessoriasDashboard() {
   const isGerenteSecao = user?.profile?.perfil === 'gerente_secao'
   
   // Determinar secaoId para filtro de equipes
-  const secaoIdParaEquipes = isGestorPOP 
-    ? selectedBase 
-    : (isBace || isGerenteSecao) 
-      ? (user?.profile?.secao_id ?? user?.profile?.secao?.id)
+  const secaoIdParaEquipes: string | undefined = isGestorPOP
+    ? (selectedBase ?? undefined)
+    : (isBace || isGerenteSecao)
+      ? (user?.profile?.secao_id ?? user?.profile?.secao?.id ?? undefined)
       : undefined
 
   // Memoizar a função de filtros
@@ -171,7 +171,6 @@ export default function AtividadesAcessoriasDashboard() {
   }, [selectedBase])
 
   const nomeBase = user?.profile?.secao?.nome ?? 'Base não identificada'
-  const nomeCoordenador = user?.profile?.nome ?? '—'
 
   // Filtrar registros (usando debounced dates para evitar recálculos excessivos)
   const registrosFiltrados = useMemo(() => {

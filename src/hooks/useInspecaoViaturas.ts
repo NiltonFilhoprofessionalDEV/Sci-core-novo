@@ -21,6 +21,15 @@ interface InspecaoViaturasData {
   observacoes?: string;
 }
 
+export interface InspecaoViaturasFormData {
+  base_id: string;
+  equipe_id: string;
+  data: string;
+  quantidade_de_inspecoes: number;
+  quantidade_itens_nao_conforme: number;
+  observacoes?: string;
+}
+
 export const useInspecaoViaturas = () => {
   const { user } = useAuth();
   const [equipes, setEquipes] = useState<Equipe[]>([]);
@@ -101,7 +110,7 @@ export const useInspecaoViaturas = () => {
         data: formData.data,
         quantidade_de_inspecoes: formData.quantidade_de_inspecoes,
         quantidade_itens_nao_conforme: formData.quantidade_itens_nao_conforme,
-        observacoes: formData.observacoes || null,
+        observacoes: formData.observacoes || undefined,
       };
 
       const { data, error } = await supabase

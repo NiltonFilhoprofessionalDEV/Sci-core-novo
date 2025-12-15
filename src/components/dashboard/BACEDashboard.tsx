@@ -68,10 +68,8 @@ export function BACEDashboard() {
 
 
   const userInfo = getUserDisplayInfo()
-  const visibleTeams = getVisibleTeams()
-  const visibleSections = getVisibleSections()
-  const equipeAtual = visibleTeams[0] // BA-CE gerencia sua equipe
-  const secaoAtual = visibleSections[0] // E vê dados da seção
+  // `getVisibleTeams/getVisibleSections` retornam IDs. Para exibir na UI, usamos o texto já formatado.
+  const equipeContexto = userInfo?.contexto ?? 'Equipe'
 
   // Carregar dados da equipe e seção
   useEffect(() => {
@@ -221,10 +219,10 @@ export function BACEDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[#1f1f1f]">
-            Dashboard - {equipeAtual?.nome}
+            Dashboard - {equipeContexto}
           </h2>
           <p className="text-[#7a5b3e]/70">
-            {secaoAtual?.nome} • {secaoAtual?.cidade}
+            Acompanhe os indicadores e atividades da sua equipe
           </p>
         </div>
         

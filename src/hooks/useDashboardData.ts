@@ -38,7 +38,7 @@ export function useDashboardData<T>({
   tableName,
   selectFields,
   orderBy = { column: 'created_at', ascending: false },
-  limit = 1000,
+  limit = 100,
   cacheKey,
   enabled = true,
   additionalFilters

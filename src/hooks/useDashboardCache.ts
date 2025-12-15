@@ -9,8 +9,8 @@ interface CacheEntry<T> {
 
 // Cache global em memória
 const dashboardCache = new Map<string, CacheEntry<any>>()
-const CACHE_DURATION = 30 * 60 * 1000 // 30 minutos - dados operacionais mudam com pouca frequência
-const STALE_TIME = 60 * 60 * 1000 // 1 hora - dados podem ser considerados stale mas ainda usáveis
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos - dados dinâmicos (indicadores preenchidos diariamente)
+const STALE_TIME = 15 * 60 * 1000 // 15 minutos - dados podem ser considerados stale mas ainda usáveis
 
 // Prefixo para chaves do localStorage
 const STORAGE_PREFIX = 'sci-dashboard-cache-'
@@ -175,6 +175,27 @@ export function useDashboardCache<T>(cacheKey: string) {
     clearCache,
     clearAllCache
   }
+}
+
+// Função utilitária para invalidar cache por padrão (pattern matching)
+export function invalidateCachePattern(pattern: string) {
+  const keysToDelete: string[] = []
+  
+  // Buscar chaves em memória que correspondem ao padrão
+  for (const key of dashboardCache.keys()) {
+    if (key.includes(pattern)) {
+      keysToDelete.push(key)
+    }
+  }
+  
+  // Remover da memória
+  keysToDelete.forEach(key => {
+    dashboardCache.delete(key)
+    removeCacheFromStorage(key)
+  })
+  
+  console.log(`🗑️ Cache invalidado: ${keysToDelete.length} entradas removidas para padrão "${pattern}"`)
+  return keysToDelete.length
 }
 
 // Função utilitária para limpar cache de uma página específica

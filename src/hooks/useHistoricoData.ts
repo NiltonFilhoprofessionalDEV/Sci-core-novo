@@ -24,8 +24,8 @@ interface UseHistoricoDataReturn {
 
 // Cache inteligente global com stale time
 const cache = new Map<string, { data: any[], timestamp: number, total: number }>()
-const CACHE_DURATION = 30 * 60 * 1000 // 30 minutos - dados históricos mudam com pouca frequência
-const STALE_TIME = 60 * 60 * 1000 // 1 hora - dados podem ser retornados mesmo se antigos
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos - dados dinâmicos (histórico pode ser atualizado frequentemente)
+const STALE_TIME = 15 * 60 * 1000 // 15 minutos - dados podem ser retornados mesmo se antigos
 
 // Prefixo para localStorage
 const STORAGE_PREFIX = 'sci-historico-cache-'

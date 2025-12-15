@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SecoesProvider } from "@/contexts/SecoesContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { QueryProvider } from "@/providers/QueryProvider";
 import { Toaster } from "sonner";
 
 const inter = Inter({
@@ -49,14 +50,16 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${sourceSerif.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
-        <ThemeProvider>
-          <AuthProvider>
-            <SecoesProvider>
-              {children}
-              <Toaster position="top-right" />
-            </SecoesProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <SecoesProvider>
+                {children}
+                <Toaster position="top-right" />
+              </SecoesProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

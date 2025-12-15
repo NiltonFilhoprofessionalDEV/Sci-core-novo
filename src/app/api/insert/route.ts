@@ -8,8 +8,45 @@ const payloadSchema = z.object({
   records: z.array(z.record(z.any())).min(1).max(100),
 })
 
+// Tabelas permitidas para inserção genérica
+const ALLOWED_TABLES = [
+  'ocorrencias_aeronauticas',
+  'ocorrencias_nao_aeronauticas',
+  'taf_registros',
+  'taf_resultados',
+  'tempo_resposta',
+  'ptr_ba_horas_treinamento',
+  'controle_agentes_extintores',
+  'controle_uniformes_recebidos',
+  'atividades_acessorias',
+  'ptr_ba_provas_teoricas',
+  'tempo_epr',
+  'controle_trocas',
+  'verificacao_tps',
+  'higienizacao_tps',
+  'inspecoes_viatura',
+] as const
+
+type AllowedTable = (typeof ALLOWED_TABLES)[number]
+
 export async function POST(req: Request) {
   try {
+    // 1) Exigir autenticação via Bearer token
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.json(
+        { error: 'Server configuration error: Missing Supabase credentials' },
+        { status: 500 }
+      )
+    }
+
     const json = await req.json()
     const parsed = payloadSchema.safeParse(json)
 
@@ -22,19 +59,17 @@ export async function POST(req: Request) {
 
     const { table, records } = parsed.data
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseAnonKey) {
+    // 2) Verificar se a tabela é permitida
+    if (!ALLOWED_TABLES.includes(table as AllowedTable)) {
       return NextResponse.json(
-        { error: 'Server configuration error: Missing Supabase credentials' },
-        { status: 500 }
+        { error: 'Tabela não permitida para inserção via esta API' },
+        { status: 400 }
       )
     }
 
-    const authorization = req.headers.get('authorization') || ''
+    // 3) Criar client Supabase com o token do usuário (RLS ativo)
     const client = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: authorization ? { Authorization: authorization } : {} },
+      global: { headers: { Authorization: authHeader } },
     })
 
     const result = await executeWithRetry(async () => {
@@ -50,8 +85,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: message }, { status })
     }
 
-    return NextResponse.json({ inserted: result.data?.length ?? 0, data: result.data ?? [] }, { status: 200 })
+    return NextResponse.json(
+      { inserted: result.data?.length ?? 0, data: result.data ?? [] },
+      { status: 200 }
+    )
   } catch (err) {
+    console.error('❌ Erro na API /api/insert:', err)
     return NextResponse.json({ error: 'Falha ao processar requisição' }, { status: 500 })
   }
 }

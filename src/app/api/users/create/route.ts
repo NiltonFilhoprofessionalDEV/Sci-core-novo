@@ -1,13 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Função para criar cliente Supabase admin (lazy initialization)
+// Perfis autorizados a criar/editar usuários
+const ALLOWED_PROFILES = ['gestor_pop', 'gerente_secao'] as const
+type AllowedPerfil = (typeof ALLOWED_PROFILES)[number]
+
+// Client público só para validar token / ler perfil
+function getSupabaseAuthClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Variáveis de ambiente do Supabase (públicas) não configuradas')
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey)
+}
+
+// Client admin (service role) – CUIDADO: ignora RLS, só usar após checar permissão
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Variáveis de ambiente do Supabase não configuradas')
+    throw new Error('Variáveis de ambiente do Supabase (service role) não configuradas')
   }
 
   return createClient(supabaseUrl, serviceRoleKey, {
@@ -20,30 +36,58 @@ function getSupabaseAdmin() {
 
 export async function POST(request: NextRequest) {
   try {
-    // Verificar variáveis de ambiente
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      console.error('❌ NEXT_PUBLIC_SUPABASE_URL não configurado')
+    // 1) Autenticação obrigatória via Bearer token
+    const authHeader = request.headers.get('authorization') || request.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+    }
+
+    const accessToken = authHeader.replace('Bearer ', '').trim()
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Token de acesso inválido' }, { status: 401 })
+    }
+
+    // 2) Validar usuário + perfil com client público
+    const supabaseAuth = getSupabaseAuthClient()
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseAuth.auth.getUser(accessToken)
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Token inválido ou sessão expirada' }, { status: 401 })
+    }
+
+    const { data: profile, error: profileError } = await supabaseAuth
+      .from('profiles')
+      .select('id, perfil')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
       return NextResponse.json(
-        { error: 'Configuração do servidor incompleta: NEXT_PUBLIC_SUPABASE_URL' },
-        { status: 500 }
+        { error: 'Perfil do usuário autenticado não encontrado' },
+        { status: 403 },
       )
     }
 
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('❌ SUPABASE_SERVICE_ROLE_KEY não configurado')
+    const isAllowed = ALLOWED_PROFILES.includes(profile.perfil as AllowedPerfil)
+    if (!isAllowed) {
       return NextResponse.json(
-        { error: 'Configuração do servidor incompleta: SUPABASE_SERVICE_ROLE_KEY' },
-        { status: 500 }
+        { error: 'Usuário autenticado não possui permissão para criar usuários' },
+        { status: 403 },
       )
     }
 
+    // 3) Autorizado: usar client admin com service role
     const supabaseAdmin = getSupabaseAdmin()
 
     const body = await request.json()
-    const { email, password, nome_completo, perfil, secao_id, equipe_id } = body
+    const { email, password, nome_completo, perfil: perfilNovo, secao_id, equipe_id } = body
 
-    // Validações
-    if (!email || !password || !nome_completo || !perfil) {
+    // Validações de entrada (mantidas da versão original)
+    if (!email || !password || !nome_completo || !perfilNovo) {
       return NextResponse.json(
         { error: 'Campos obrigatórios faltando' },
         { status: 400 }
@@ -51,12 +95,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar que ba_ce (chefe de equipe) deve ter seção e equipe
-    if ((perfil === 'chefe_equipe' || perfil === 'ba_ce') && (!secao_id || !equipe_id)) {
+    if ((perfilNovo === 'chefe_equipe' || perfilNovo === 'ba_ce') && (!secao_id || !equipe_id)) {
       return NextResponse.json(
         { error: 'Chefe de equipe (BA-CE) deve ter seção e equipe' },
         { status: 400 }
       )
     }
+
+    // === A partir daqui é basicamente a lógica original (ajustada para usar supabaseAdmin) ===
 
     // Verificar se o email já existe no auth
     const { data: existingAuthUser } = await supabaseAdmin.auth.admin.listUsers()
@@ -88,7 +134,7 @@ export async function POST(request: NextRequest) {
         email_confirm: true,
         user_metadata: {
           nome_completo,
-          perfil
+          perfil: perfilNovo
         }
       })
 
@@ -119,15 +165,13 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (existingProfile) {
-      // Perfil já existe, atualizar ao invés de criar
-      console.log('⚠️ Perfil já existe, atualizando...', existingProfile)
-      
+      // Atualizar perfil existente
       const { error: updateError } = await supabaseAdmin
         .from('profiles')
         .update({
           email,
           nome_completo,
-          perfil,
+          perfil: perfilNovo,
           secao_id: secao_id || null,
           equipe_id: equipe_id || null,
           ativo: true
@@ -143,22 +187,13 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Criar novo perfil
-      console.log('📝 Criando novo perfil com dados:', {
-        id: userId,
-        email,
-        nome_completo,
-        perfil,
-        secao_id,
-        equipe_id
-      })
-      
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .insert({
           id: userId,
           email,
           nome_completo,
-          perfil,
+          perfil: perfilNovo,
           secao_id: secao_id || null,
           equipe_id: equipe_id || null,
           ativo: true
@@ -167,14 +202,13 @@ export async function POST(request: NextRequest) {
       if (profileError) {
         // Se falhar ao criar perfil, verificar se é erro de duplicata
         if (profileError.code === '23505') {
-          // Perfil já existe (race condition), tentar atualizar
-          console.log('⚠️ Perfil já existe (race condition), atualizando...')
+          // Duplicata – tentar atualizar
           const { error: updateError } = await supabaseAdmin
             .from('profiles')
             .update({
               email,
               nome_completo,
-              perfil,
+              perfil: perfilNovo,
               secao_id: secao_id || null,
               equipe_id: equipe_id || null,
               ativo: true
@@ -189,7 +223,7 @@ export async function POST(request: NextRequest) {
             )
           }
         } else {
-          // Outro erro, tentar deletar o usuário criado apenas se foi criado agora
+          // Outro erro – se criou o usuário agora, tenta deletar
           if (!userExists && authData?.user) {
             await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
           }
@@ -206,15 +240,11 @@ export async function POST(request: NextRequest) {
       success: true,
       user: {
         id: userId,
-        email: email
+        email
       }
     })
   } catch (error: any) {
     console.error('❌ Erro na API de criação de usuário:', error)
-    console.error('❌ Stack:', error.stack)
-    console.error('❌ Tipo do erro:', error.constructor.name)
-    
-    // Retornar mensagem de erro mais detalhada em desenvolvimento
     const errorMessage = process.env.NODE_ENV === 'development' 
       ? error.message || 'Erro interno do servidor'
       : 'Erro interno do servidor. Tente novamente mais tarde.'

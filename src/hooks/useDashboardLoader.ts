@@ -56,46 +56,8 @@ export function useDashboardLoader<T>({
     }
   }, [])
 
-  // Função principal de carregamento
-  const loadData = useCallback(async (forceRefresh = false) => {
-    // Evitar requisições muito frequentes (debounce de 500ms)
-    const now = Date.now()
-    if (!forceRefresh && now - lastFetchTimeRef.current < 500) {
-      return
-    }
-    lastFetchTimeRef.current = now
-
-    // Limpar recursos anteriores
-    cleanup()
-
-    // Criar novo AbortController
-    const abortController = new AbortController()
-    abortControllerRef.current = abortController
-
-    // Verificar cache primeiro (se não for refresh forçado)
-    if (!forceRefresh) {
-      const cachedData = getCachedData()
-      if (cachedData && cachedData.length > 0) {
-        setData(cachedData)
-        setLoading(false)
-        setError(null)
-        
-        // Atualizar em background sem bloquear UI
-        // Usar setTimeout para não bloquear o render
-        fetchTimeoutRef.current = setTimeout(async () => {
-          if (abortController.signal.aborted || !isMountedRef.current) return
-          await fetchFreshData(abortController, false)
-        }, 100)
-        return
-      }
-    }
-
-    // Se não houver cache ou for refresh forçado, carregar dados
-    await fetchFreshData(abortController, true)
-  }, [cacheKey, fetchFunction, filters, getCachedData, setCachedData, cleanup, fetchFreshData, enabled, user])
-
   // Função para buscar dados frescos
-  const fetchFreshData = async (controller: AbortController, showLoading: boolean) => {
+  const fetchFreshData = useCallback(async (controller: AbortController, showLoading: boolean) => {
     if (!enabled || !user) {
       if (isMountedRef.current) {
         setLoading(false)
@@ -170,7 +132,45 @@ export function useDashboardLoader<T>({
         setLoading(false)
       }
     }
-  }
+  }, [cacheKey, enabled, fetchFunction, filters, setCachedData, user])
+
+  // Função principal de carregamento
+  const loadData = useCallback(async (forceRefresh = false) => {
+    // Evitar requisições muito frequentes (debounce de 500ms)
+    const now = Date.now()
+    if (!forceRefresh && now - lastFetchTimeRef.current < 500) {
+      return
+    }
+    lastFetchTimeRef.current = now
+
+    // Limpar recursos anteriores
+    cleanup()
+
+    // Criar novo AbortController
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+
+    // Verificar cache primeiro (se não for refresh forçado)
+    if (!forceRefresh) {
+      const cachedData = getCachedData()
+      if (cachedData && cachedData.length > 0) {
+        setData(cachedData)
+        setLoading(false)
+        setError(null)
+        
+        // Atualizar em background sem bloquear UI
+        // Usar setTimeout para não bloquear o render
+        fetchTimeoutRef.current = setTimeout(async () => {
+          if (abortController.signal.aborted || !isMountedRef.current) return
+          await fetchFreshData(abortController, false)
+        }, 100)
+        return
+      }
+    }
+
+    // Se não houver cache ou for refresh forçado, carregar dados
+    await fetchFreshData(abortController, true)
+  }, [cacheKey, fetchFunction, filters, getCachedData, setCachedData, cleanup, fetchFreshData, enabled, user])
 
   // Efeito principal
   useEffect(() => {
